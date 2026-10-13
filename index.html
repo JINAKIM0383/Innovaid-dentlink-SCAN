@@ -3059,7 +3059,17 @@ function runEngine() {
       rx.verdict = 'RESCAN'; rx.readFailed = entry.error || '알 수 없는 오류';
     } else {
       applyBiteHardBlock(rx, d, !!(entry && entry.isBite) && !hasArchScan);
-      applyHoleSizeHardBlock(rx, a);
+      // 반대 악궁(대합) 스캔: 치아번호가 입력됐고 이 파일의 악궁에 보철 대상 치아가 하나도 없으면,
+      // 구멍이 보철 부위와 무관할 가능성이 높아 "제작 불가"로 자동 차단하지 않고 점수 판정(검토)에 맡긴다.
+      const antagonist = !!(entry && (entry.label === 'upper' || entry.label === 'lower') && toothNumbers.length
+        && !toothNumbers.some(n => archOfFdi(n) === entry.label));
+      if (antagonist) {
+        const mh = a && a.metrics && a.metrics.holeRegions && a.metrics.holeRegions.length
+          ? Math.max(...a.metrics.holeRegions.map(h => h.physicalSize || 0)) : 0;
+        if (mh >= 5) rx.holeAntagonist = Math.round(mh * 10) / 10;
+      } else {
+        applyHoleSizeHardBlock(rx, a);
+      }
       applyNoScanHardBlock(rx, a);
     }
     return {entry, rxD: d, rx, branch: evaluateBranch(d), supplementary: !!(entry && entry.status === 'ok' && entry.isBite && hasArchScan)};
@@ -3916,7 +3926,10 @@ function buildScanBodyHtml(j, tctx, orderNum, sfx) {
   if (j.supplementary) {
     return buildOverviewSection(a, sfx) + buildInspectionGuide(a);
   }
+  const antNote = j.rx.holeAntagonist
+    ? `<div class="tooth-loc-note"><b>대합(반대 악궁) 스캔의 구멍 ${j.rx.holeAntagonist}mm</b> — 입력한 보철 대상 치아는 ${arch === 'upper' ? '하악' : '상악'}에 있고 이 파일은 반대편 악궁입니다. 구멍이 보철 부위와 무관할 가능성이 높아 자동으로 "제작 불가" 처리하지 않고 점수대로 판정했습니다. 구멍이 대합치의 교합면 위에 있는지는 아래 구멍 위치 그림에서 확인해주세요.</div>` : '';
   return buildOverviewSection(a, sfx)
+    + antNote
     + buildProsthesisLocationSection(a, tctx, arch)
     + buildFindingsScorecard(a)
     + buildScopeBanner(a)
