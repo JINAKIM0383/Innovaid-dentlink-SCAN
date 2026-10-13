@@ -138,6 +138,43 @@
   }
 
   .scan-val{font-family:var(--mono); font-weight:700; font-size:14px; color:var(--blue-ink);}
+  /* ── 주문 페이지 붙여넣기 (2026-10-13) ── */
+  .paste-box textarea{ width:100%; padding:9px 11px; border:1.5px dashed var(--line-strong); border-radius:6px; font-family:var(--sans); font-size:12px; background:#fff; color:var(--ink); resize:vertical; }
+  .paste-box textarea:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-bg); }
+  .paste-result{ margin-top:8px; }
+  .paste-result table{ width:100%; border-collapse:collapse; font-size:12px; }
+  .paste-result td{ padding:4px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .paste-result td.pk{ width:120px; color:var(--ink-faint); white-space:nowrap; }
+  .paste-result td.pv.miss{ color:var(--ink-faint); }
+  .paste-result .pnote{ font-size:11px; color:var(--ink-muted); margin-top:6px; line-height:1.6; }
+  .paste-result .pwarn{ font-size:12px; color:#B23A2E; }
+  /* ── 다중 스캔 파일 (2026-10-13) ── */
+  .scan-file-list{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+  .sf-row{ display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:6px; padding:6px 8px; background:var(--panel); font-size:12px; }
+  .sf-row select{ width:auto; padding:2px 4px; font-size:11px; flex-shrink:0; }
+  .sf-name{ font-family:var(--mono); font-size:11px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sf-meta{ font-size:11px; color:var(--ink-muted); flex-shrink:0; }
+  .sf-meta.err{ color:#B23A2E; }
+  .sf-x{ border:none; background:none; color:var(--ink-faint); font-size:17px; line-height:1; cursor:pointer; padding:0 4px; flex-shrink:0; }
+  .sf-x:hover{ color:#B23A2E; }
+  .sf-defect-head{ font-size:11px; font-weight:700; color:var(--ink-muted); margin:6px 0 4px; }
+  .tooth-sys-info{ font-size:11px; color:var(--ink-muted); margin-top:4px; line-height:1.6; }
+  .tooth-sys-info.warn{ color:#B23A2E; }
+  .sfs-table{ width:100%; border-collapse:collapse; font-size:12px; margin:6px 0 4px; }
+  .sfs-table th, .sfs-table td{ padding:7px 8px; border-bottom:1px solid var(--line); text-align:left; }
+  .sfs-table th{ font-size:11px; color:var(--ink-faint); font-weight:600; }
+  .sfs-table tr.sfs-click{ cursor:pointer; }
+  .sfs-table tr.sfs-click:hover{ background:var(--gray-bg); }
+  .scan-tabs{ display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--line-strong); margin:20px 0 14px; }
+  .scan-tab{ border:1px solid var(--line-strong); border-bottom:none; background:var(--gray-bg); color:var(--ink-muted); padding:8px 13px; border-radius:6px 6px 0 0; font-size:12px; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:7px; margin-bottom:-1px; }
+  .scan-tab.on{ background:var(--panel); color:var(--ink); font-weight:700; border-bottom:1px solid var(--panel); }
+  .st-v{ font-family:var(--mono); font-size:10px; font-weight:700; padding:1px 7px; border-radius:9px; background:var(--gray-bg); color:var(--ink-muted); }
+  .st-v.proceed{ background:var(--blue-bg); color:var(--blue-ink); }
+  .st-v.review{ background:#FFF3D6; color:#8A6508; }
+  .st-v.rescan{ background:#FBEAE8; color:#B23A2E; }
+  .scan-panel{ display:none; }
+  .scan-panel.active{ display:block; }
+  .rx-verdict-stamp.ref{ border-color:var(--line-strong); background:var(--gray-bg); }
 
   button.run{
     width:100%; padding:12px; margin-top:6px; border:none; border-radius:8px;
@@ -493,6 +530,9 @@
     .print-frame > tbody > tr > td{ padding:0 17mm; }
     .pf-space{ height:15mm; }
     #resultPanel .page{ max-width:none; }
+    .scan-panel { display:block !important; }
+    .scan-panel { break-before: page; }
+    .scan-tabs { display:none !important; }
     .rx-verdict-stamp, .case-summary-grid, .rule-list, .finding-list, .alert-box, .guide-card, .report-footer, .mesh-canvas-hero { break-inside: avoid; }
     body { background: #fff !important; }
     #inputPanel, .no-print { display: none !important; }
@@ -571,13 +611,21 @@
         <div class="ph-sub">스캔 파일과 주문 정보를 입력하면 제작 진행 여부를 자동으로 판단합니다</div>
       </div>
 
+      <div class="field paste-box">
+        <label>주문 페이지 붙여넣기 <span style="font-weight:400; color:var(--ink-faint);">(선택 — 관리자 "주문 조회" 화면에서 Ctrl+A → Ctrl+C 한 뒤 아래 칸에 Ctrl+V)</span></label>
+        <textarea id="pasteArea" rows="2" placeholder="여기를 클릭하고 붙여넣기(Ctrl+V)하면 Order Num·보철 유형·재료·치아 번호·날짜 등이 아래 칸에 자동으로 채워집니다"></textarea>
+        <div id="pasteResult" class="paste-result"></div>
+      </div>
+
       <div class="field">
-        <label>스캔 파일 업로드</label>
+        <label>스캔 파일 업로드 <span style="font-weight:400; color:var(--ink-faint);">(상악·하악·교합 등 여러 파일 가능)</span></label>
         <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
-          클릭 또는 드래그해서 .stl / .ply 업로드
+          클릭 또는 드래그해서 .stl / .ply 업로드 (여러 파일을 한 번에 선택할 수 있습니다)
           <div id="fileStatus" style="margin-top:4px; font-family:var(--mono); font-size:11px; color:var(--blue-ink);"></div>
         </div>
-        <input type="file" id="fileInput" accept=".stl,.ply" style="display:none">
+        <input type="file" id="fileInput" accept=".stl,.ply" multiple style="display:none">
+        <div id="fileList" class="scan-file-list"></div>
+        <div class="hint" id="fileListHint" style="display:none;">파일마다 따로 분석하며, 판단 결과 화면에 파일별 탭이 만들어집니다. 파일 구분(상악·하악·교합)은 파일명으로 자동 인식하고, 틀리면 직접 바꿀 수 있습니다.</div>
       </div>
 
       <div class="row2">
@@ -625,12 +673,14 @@
             <label>치아 번호</label>
             <div style="display:flex; gap:8px;">
               <input type="text" id="toothNumbers" value="" oninput="renderToothChart()" placeholder="예: 11,12,13 (모르면 비워두세요)" style="flex:1;">
-              <select id="toothSystem" onchange="renderToothChart()" style="width:90px; flex-shrink:0;">
-                <option value="fdi" selected>FDI</option>
+              <select id="toothSystem" onchange="renderToothChart()" style="width:90px; flex-shrink:0;" title="자동: 입력한 번호로 FDI/UNS를 판별합니다">
+                <option value="auto" selected>자동</option>
+                <option value="fdi">FDI</option>
                 <option value="uns">UNS</option>
               </select>
             </div>
-            <div class="hint">채우면 사랑니·전치부 자동 인식. 비워도 판단은 그대로 진행됩니다. 해외 주문은 UNS로 올 수 있어 체계를 선택해주세요.</div>
+            <div id="toothSysInfo" class="tooth-sys-info"></div>
+            <div class="hint">채우면 사랑니·전치부 자동 인식. 비워도 판단은 그대로 진행됩니다. FDI(11~48)와 UNS(1~32)는 입력한 번호로 자동 판별하며, "14-16"처럼 범위로도 입력할 수 있습니다.</div>
             <div id="toothChart"></div>
           </div>
 
@@ -665,6 +715,12 @@
             <label>제작 유닛(치아) 수</label>
             <input type="number" id="unitCount" min="1" value="1">
             <div class="hint">치아번호와 별개 — 연결(스플린트) 복잡도 규칙에 쓰임. 재제작 이력은 동일 Order Num 재입력시 자동 집계됩니다.</div>
+          </div>
+
+          <div class="field">
+            <label>리메이크 차수 (선택)</label>
+            <input type="number" id="remakeInput" min="0" max="9" placeholder="0">
+            <div class="hint">Dentlink에 "리메이크 N차"로 표시된 주문이면 N을 입력합니다(주문 페이지를 붙여넣으면 자동 입력). 비워두면 이 앱에 쌓인 이력으로만 집계합니다.</div>
           </div>
         </div>
       </details>
@@ -1529,9 +1585,83 @@ const UNS_TO_FDI = {
   17:38,18:37,19:36,20:35,21:34,22:33,23:32,24:31,
   25:41,26:42,27:43,28:44,29:45,30:46,31:47,32:48,
 };
+const FDI_SET = new Set([...FDI_UPPER, ...FDI_LOWER]);          // 11-18, 21-28, 31-38, 41-48
+const UNS_SET = new Set(Array.from({length:32}, (_, i) => i+1)); // 1-32
 function toFdi(num, system) {
   if (system === 'uns') return UNS_TO_FDI[num] || null;
-  return num;
+  return FDI_SET.has(num) ? num : null;
+}
+function archOfFdi(fdi) { return fdi < 30 ? 'upper' : 'lower'; }   // 1x,2x=상악 / 3x,4x=하악
+
+// 치아번호 입력 파싱 (2026-10-13): 쉼표·공백 구분, "14-16" 범위 확장, "UNS"/"FDI" 글자 인식
+function parseToothInput(raw) {
+  const text = String(raw || '');
+  let hint = null;
+  if (/uns|universal|유니버/i.test(text)) hint = 'uns';
+  else if (/fdi/i.test(text)) hint = 'fdi';
+  const nums = [];
+  const push = n => { if (!nums.includes(n)) nums.push(n); };
+  const re = /(\d+)\s*(?:[-~–]\s*(\d+))?/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const a = parseInt(m[1], 10);
+    if (m[2] !== undefined) {
+      const b = parseInt(m[2], 10);
+      if (b > a && b - a <= 7) { for (let n = a; n <= b; n++) push(n); }
+      else { push(a); push(b); }
+    } else push(a);
+  }
+  return {nums, hint};
+}
+
+// FDI와 UNS는 숫자 범위가 겹친다. 한쪽에만 있는 번호가 하나라도 있으면 그걸로 확정하고,
+// 전부 겹치는 번호(11-18, 21-28, 31, 32)면 FDI로 해석하되 모호하다고 알린다.
+//   FDI에만 있음: 33-38, 41-48    UNS에만 있음: 1-10, 19, 20, 29, 30
+function resolveToothSystem(nums, pref, hint) {
+  if (pref === 'fdi' || pref === 'uns') return {system: pref, mode: 'manual', decisive: []};
+  if (hint) return {system: hint, mode: 'hint', decisive: []};
+  const fdiOnly = nums.filter(n => FDI_SET.has(n) && !UNS_SET.has(n));
+  const unsOnly = nums.filter(n => UNS_SET.has(n) && !FDI_SET.has(n));
+  if (fdiOnly.length && unsOnly.length) {
+    return {system: unsOnly.length > fdiOnly.length ? 'uns' : 'fdi', mode: 'mixed', decisive: [], fdiOnly, unsOnly};
+  }
+  if (unsOnly.length) return {system: 'uns', mode: 'auto-unique', decisive: unsOnly};
+  if (fdiOnly.length) return {system: 'fdi', mode: 'auto-unique', decisive: fdiOnly};
+  if (nums.some(n => FDI_SET.has(n))) return {system: 'fdi', mode: 'auto-ambiguous', decisive: []};
+  return {system: 'fdi', mode: 'auto-none', decisive: []};
+}
+
+// 현재 입력창 기준 치아번호 정보: 원본 번호, 판별된 체계, FDI 환산값, 인식 불가 번호
+function getToothContext() {
+  const raw = document.getElementById('toothNumbers').value;
+  const pref = document.getElementById('toothSystem').value;
+  const {nums, hint} = parseToothInput(raw);
+  const r = resolveToothSystem(nums, pref, hint);
+  const fdi = [], unknown = [], origOf = {};
+  nums.forEach(n => {
+    const f = toFdi(n, r.system);
+    if (f == null) unknown.push(n);
+    else if (!fdi.includes(f)) { fdi.push(f); origOf[f] = n; }
+  });
+  return {raw, nums, ...r, fdi, unknown, origOf};
+}
+function toothLabel(fdi, tctx) {
+  return tctx.system === 'uns' ? `UNS ${tctx.origOf[fdi] != null ? tctx.origOf[fdi] : '?'}(FDI ${fdi})` : String(fdi);
+}
+function toothSysInfo(c) {
+  if (!c.raw.trim()) return {html: '', warn: false};
+  const SYS = c.system === 'uns' ? 'UNS' : 'FDI';
+  let html = '', warn = false;
+  if (c.mode === 'manual') html = `${SYS}로 직접 지정됨`;
+  else if (c.mode === 'hint') html = `입력에 "${SYS}"가 적혀 있어 ${SYS}로 해석했습니다`;
+  else if (c.mode === 'auto-unique') html = `자동 판별: <b>${SYS}</b> — ${c.decisive.join(', ')}번은 ${SYS}에만 있는 번호입니다`;
+  else if (c.mode === 'auto-ambiguous') html = `자동 판별: <b>FDI</b>로 해석했습니다 — 입력한 번호가 FDI와 UNS에 모두 있는 범위(11~18, 21~28, 31, 32)라 구분할 수 없습니다. UNS 번호라면 오른쪽에서 <b>UNS</b>를 선택해주세요`;
+  else if (c.mode === 'mixed') { warn = true; html = `FDI에만 있는 번호(${c.fdiOnly.join(', ')})와 UNS에만 있는 번호(${c.unsOnly.join(', ')})가 섞여 있어 체계를 정할 수 없습니다. 한 체계로 통일해주세요 (임시로 ${SYS}로 해석)`; }
+  else { warn = true; html = '인식할 수 있는 치아 번호가 없습니다'; }
+  if (c.system === 'uns' && c.fdi.length && c.mode !== 'mixed') {
+    html += `<br>FDI 환산: ${c.fdi.map(f => `${c.origOf[f]}→${f}`).join(', ')}`;
+  }
+  return {html, warn};
 }
 
 // 치식도 v3 (2026-10-06): 상악·하악을 각각 말굽(U) 호선으로 배치하고,
@@ -1587,17 +1717,18 @@ function archPointAt(arch,s){
 }
 
 function renderToothChart() {
-  const raw = document.getElementById('toothNumbers').value;
-  const system = document.getElementById('toothSystem').value;
-  const rawNums = raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  const tc = getToothContext();
+  const system = tc.system;
   const chart = document.getElementById('toothChart');
-  if (!raw.trim()) { chart.innerHTML = ''; return; }
+  const infoEl = document.getElementById('toothSysInfo');
+  const si = toothSysInfo(tc);
+  if (infoEl) { infoEl.innerHTML = si.html; infoEl.className = 'tooth-sys-info' + (si.warn ? ' warn' : ''); }
+  if (!tc.raw.trim()) { chart.innerHTML = ''; return; }
 
-  const selected = new Set(rawNums);
+  const selected = new Set(tc.nums);
   const upperArr = system==='uns' ? UNS_UPPER : FDI_UPPER;
   const lowerArr = system==='uns' ? UNS_LOWER : FDI_LOWER;
-  const validSet = new Set([...upperArr, ...lowerArr]);
-  const unknown = rawNums.filter(n => !validSet.has(n));
+  const unknown = tc.unknown;
 
   const archLower = buildArch(150,135,105,112,false);
   const archUpper = buildArch(150,135,105,112,true);   // 상악: 위아래 반전(앞니 위쪽)
@@ -2155,7 +2286,7 @@ function applyBiteHardBlock(rxResult, rxD, isBiteTypeFile) {
   // 아예 안 보여주기로 했었음), 기본값이 항상 켜져있어 무조건
   // 규칙으로 쓰면 정상주문까지 전부 RESCAN 처리되는 부작용이 있었음.
   // → 대신 "지금 분석 중인 파일 자체가 바이트타입 스캔인지"를
-  // 파일명으로 자동 감지(handleScanFile 참고). 바이트스캔은 정의상
+  // 파일명으로 자동 감지(addScanFiles 참고). 바이트스캔은 정의상
   // 교합면이 항상 가려져 있어 구멍비율 지표로 좋고나쁨을 가릴 수
   // 없는 파일유형이라, 감지되면 점수와 무관하게 항상 육안확인
   // 필수 처리함.
@@ -2474,7 +2605,24 @@ function makeResult(result, reason, conf, flags, due) {
 }
 
 // ── UI 렌더링 ──
-let currentAutoDefects = []; // 자동감지된 결함 코드 배열 — 사람이 건드리지 않음
+// ── 스캔 파일 상태 (2026-10-13: 여러 파일을 각각 따로 분석) ──
+let scanFiles = [];   // {id, name, size, label, isBite, status:'analyzing'|'ok'|'error', analysis, ms, error}
+let scanFileSeq = 0;
+const MAX_SCAN_FILES = 6;
+const SCAN_LABEL_TEXT = {upper:'상악', lower:'하악', bite:'교합(바이트)', unknown:'미분류'};
+
+// 파일명으로 상악/하악/교합 구분 (실사례 UpperJawScan.stl / LowerJawScan.stl / BiteScan2.stl 기준).
+// 이름만으로 못 맞히는 경우가 있어 업로드 후 직접 바꿀 수 있게 함.
+function detectScanLabel(name) {
+  if (/bite|바이트|교합/i.test(name)) return 'bite';
+  if (/upper|maxill|상악/i.test(name)) return 'upper';
+  if (/lower|mandib|하악/i.test(name)) return 'lower';
+  return 'unknown';
+}
+function autoDefectsOf(entry) {
+  return entry && entry.status === 'ok' && entry.analysis
+    ? entry.analysis.defects.filter(([,c]) => c >= 0.6).map(([code]) => code) : [];
+}
 
 function initDefectGrid() {
   renderDefectGridBadges();
@@ -2482,33 +2630,275 @@ function initDefectGrid() {
 
 function renderDefectGridBadges() {
   const grid = document.getElementById('defectGrid');
-  if (!currentAutoDefects.length) {
+  const oks = scanFiles.filter(f => f.status === 'ok');
+  if (!scanFiles.length) {
     grid.className = 'hint';
     grid.innerHTML = '스캔 파일을 업로드하면 감지된 결함이 여기에 표시됩니다.';
     return;
   }
+  if (!oks.length) {
+    grid.className = 'hint';
+    grid.innerHTML = '파일을 분석하는 중입니다.';
+    return;
+  }
   grid.className = '';
-  grid.innerHTML = currentAutoDefects.map(code => `
-    <div class="defect-chip">${SCAN_DEFECT_LABELS[code] || code}</div>
-  `).join('');
+  grid.innerHTML = oks.map(f => {
+    const codes = autoDefectsOf(f);
+    const head = scanFiles.length > 1 ? `<div class="sf-defect-head">${SCAN_LABEL_TEXT[f.label]} · ${esc2(f.name)}</div>` : '';
+    const body = codes.length
+      ? codes.map(code => `<div class="defect-chip">${SCAN_DEFECT_LABELS[code] || code}</div>`).join('')
+      : '<div class="hint">감지된 결함이 없습니다.</div>';
+    return head + body;
+  }).join('');
 }
+
+function renderFileList() {
+  const el = document.getElementById('fileList');
+  if (!el) return;
+  const hint = document.getElementById('fileListHint');
+  if (hint) hint.style.display = scanFiles.length ? '' : 'none';
+  el.innerHTML = scanFiles.map(f => {
+    let meta;
+    if (f.status === 'analyzing') meta = '<span class="sf-meta"><span class="spinner"></span> 분석 중</span>';
+    else if (f.status === 'error') meta = `<span class="sf-meta err">분석 실패: ${esc2(f.error || '')}</span>`;
+    else meta = `<span class="sf-meta"><span class="status-check">✓</span> 점수 ${f.analysis.score} · 삼각형 ${f.analysis.triangleCount.toLocaleString()}개</span>`;
+    return `<div class="sf-row">
+      <select onchange="setScanLabel(${f.id}, this.value)" title="파일 구분">
+        ${['upper','lower','bite','unknown'].map(k => `<option value="${k}" ${f.label === k ? 'selected' : ''}>${SCAN_LABEL_TEXT[k]}</option>`).join('')}
+      </select>
+      <span class="sf-name" title="${esc2(f.name)}">${esc2(f.name)}</span>
+      ${meta}
+      <button type="button" class="sf-x" onclick="removeScanFile(${f.id})" title="이 파일 빼기">×</button>
+    </div>`;
+  }).join('');
+}
+
+// 점수 슬라이더(읽기 전용 표시)는 올라온 파일 중 가장 낮은 점수를 보여준다.
+function refreshScanSummary() {
+  const allOk = scanFiles.filter(f => f.status === 'ok');
+  const arch = allOk.filter(f => !f.isBite);           // 교합 스캔은 점수에 섞지 않음(상·하악 스캔이 있을 때)
+  const oks = arch.length ? arch : allOk;
+  const slider = document.getElementById('scanScore'), lab = document.getElementById('scanValLabel');
+  if (!oks.length) { slider.value = 85; lab.textContent = '—'; }
+  else {
+    const min = Math.min(...oks.map(f => f.analysis.score));
+    slider.value = min;
+    lab.textContent = oks.length > 1 ? `${min} (최저)` : String(min);
+  }
+  renderDefectGridBadges();
+}
+function setScanLabel(id, label) {
+  const f = scanFiles.find(x => x.id === id);
+  if (!f) return;
+  f.label = label; f.isBite = (label === 'bite');
+  renderFileList(); renderDefectGridBadges();
+}
+function removeScanFile(id) {
+  scanFiles = scanFiles.filter(f => f.id !== id);
+  renderFileList(); refreshScanSummary();
+  if (!scanFiles.some(f => f.status === 'analyzing')) document.getElementById('dropZone').classList.remove('analyzing');
+}
+
 // 입력 초기화 — 새로고침(F5)과 같이 이번 입력을 한 번에 비운다. 이미 등록된 주문·판단 기록은 그대로 둔다.
 function resetRxInput() {
   const $ = id => document.getElementById(id);
   $('fileInput').value = '';
-  lastScanAnalysis = null; lastFileIsBiteType = false; currentAutoDefects = [];
+  scanFiles = [];
   $('fileStatus').innerHTML = '';
-  $('scanScore').value = 85; $('scanValLabel').textContent = '\u2014';
-  renderDefectGridBadges();
+  $('dropZone').classList.remove('analyzing');
+  renderFileList();
+  refreshScanSummary();
+  resetOrderFields();
+}
+// 주문 정보 입력칸만 비운다(스캔 파일은 그대로). 붙여넣기로 새 주문을 채우기 전에도 쓴다.
+function resetOrderFields() {
+  const $ = id => document.getElementById(id);
   $('prosthesisType').value = 'crown_bridge';
   $('material').value = 'acrylic';
-  ['orderNum','toothNumbers','dueDate','expectedShip','categoryName','productOption'].forEach(id => { $(id).value = ''; });
-  $('toothSystem').value = 'fdi';
+  ['orderNum','toothNumbers','dueDate','expectedShip','categoryName','productOption','remakeInput'].forEach(id => { $(id).value = ''; });
+  $('toothSystem').value = 'auto';
   $('unitCount').value = '1';
   const t = new Date();
   $('submittedAt').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  $('pasteArea').value = '';
+  $('pasteResult').innerHTML = '';
   renderToothChart();
 }
+
+// ══ 주문 페이지 붙여넣기 → 입력칸 자동 채움 (2026-10-13) ══
+// Dentlink 관리자 "주문 조회" 화면을 전체 선택·복사한 텍스트에서 이 앱의 입력칸에 필요한 값만 뽑는다.
+// 환자 이름·의사 연락처 같은 개인정보는 읽지 않고, 붙여넣은 원문도 파싱 직후 화면에서 지운다.
+const PRODUCT_PATTERNS = [
+  [/crown\s*&\s*bridge\s*\(\s*restoration\s*\)/i, 'crown_bridge_restoration'],
+  [/crown\s*&\s*bridge/i, 'crown_bridge'],
+  [/implant\s*crown/i, 'implant_crown'],
+  [/complete\s*denture/i, 'complete_denture'],
+  [/partial\s*denture/i, 'partial_denture'],
+  [/all[\s-]*on[\s-]*x/i, 'all_on_x'],
+  [/night\s*guard/i, 'night_guard'],
+  [/surgical\s*guide/i, 'surgical_guide'],
+  [/aligner/i, 'aligner'],
+];
+function productFromText(str) {
+  for (const [re, v] of PRODUCT_PATTERNS) if (re.test(str || '')) return v;
+  return null;
+}
+function materialFromText(str) {
+  const t = String(str || '');
+  if (/zircon/i.test(t)) return 'zirconia';
+  if (/pfm|porcelain/i.test(t)) return 'PFM';
+  if (/e\.?max|lithium/i.test(t)) return 'e.max';
+  if (/acryl|pmma/i.test(t)) return 'acrylic';
+  if (/peek/i.test(t)) return 'PEEK';
+  return null;
+}
+function normDate(str) {
+  const m = /(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})/.exec(str || '');
+  return m ? `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}` : null;
+}
+
+function parseDentlinkOrderText(text) {
+  const lines = String(text).split(/\r?\n/).map(l => l.trim());
+  const ne = lines.filter(Boolean);                       // 빈 줄 제거본
+  const idxOf = (label, from = 0) => { for (let i = from; i < ne.length; i++) if (ne[i] === label) return i; return -1; };
+  const valueOf = (label, from = 0) => { const i = idxOf(label, from); return i < 0 || i + 1 >= ne.length ? null : ne[i + 1]; };
+  const clean = v => (!v || v === '-') ? null : v;
+  const f = {};
+
+  // Order Num: "Order Summary" 다음 줄의 #번호
+  const iSum = idxOf('Order Summary');
+  let on = iSum >= 0 ? /^#?(\d{6,})$/.exec(ne[iSum + 1] || '') : null;
+  if (!on) on = /#(\d{7,})/.exec(ne.join('\n'));
+  f.orderNum = on ? on[1] : null;
+
+  // 리메이크 차수: 머리말의 "리메이크 1차"
+  const rm = /리메이크\s*(\d+)\s*차/.exec(ne.slice(0, 60).join('\n'));
+  f.remake = rm ? parseInt(rm[1], 10) : 0;
+
+  // 날짜
+  f.submittedAt = normDate(valueOf('주문 접수'));
+  f.dueDate = normDate(valueOf('희망 배송'));
+  f.expectedShip = normDate(valueOf('예상 출고'));
+  const reqDate = normDate(valueOf('Request Date'));
+  f.submittedNote = null;
+  if (f.remake > 0 && reqDate) {          // 리메이크는 원래 접수일이 아니라 리메이크 요청일부터 납기를 센다
+    f.submittedAt = reqDate;
+    f.submittedNote = '리메이크 요청일 기준';
+  }
+
+  // 카테고리명: "기공소" 라벨 → 기공소 이름 → 그 다음 줄
+  const iLab = idxOf('기공소');
+  f.categoryName = null;
+  if (iLab >= 0) {
+    const cand = ne[iLab + 2];
+    if (cand && cand !== '환자' && cand !== '-') f.categoryName = cand;
+  }
+
+  // 상품·옵션 영역
+  const iOpt = idxOf('상품 · 옵션');
+  let productName = null;
+  if (iOpt >= 0) {
+    for (let i = iOpt + 1; i < Math.min(ne.length, iOpt + 25); i++) {
+      if (ne[i].length < 40 && productFromText(ne[i])) { productName = ne[i]; break; }
+    }
+  }
+  const joined = ne.join('\n');
+  const catCode = /category:\s*([A-Z_]+)/.exec(joined);
+  f.prosthesisType = productFromText(productName) || (catCode ? productFromText(catCode[1].replace(/_/g, ' ')) : null);
+  const from = iOpt >= 0 ? iOpt : 0;
+  const matRaw = clean(valueOf('Material', from));
+  const abut = clean(valueOf('Abutment Material', from));
+  const retention = clean(valueOf('Retention Type', from));
+  const shade = clean(valueOf('Tooth Shade(Base)', from));
+  f.material = materialFromText(matRaw) || materialFromText((/material:\s*([^,\n]+)/i.exec(joined) || [])[1]);
+  f.productOption = [productName, matRaw, abut, retention, shade].filter(Boolean).join(' / ') || null;
+
+  // 치아 번호: UNS/FDI 표(여러 줄이면 여러 행), 없으면 코멘트의 "tooth: UNS_13"
+  const rows = [];
+  for (let i = 0; i < ne.length - 1; i++) {
+    if (ne[i] === 'UNS' && ne[i + 1] === 'FDI') {
+      let k = i + 2;
+      while (k < ne.length && k < i + 8 && !/^\d+$/.test(ne[k])) k++;
+      while (/^\d+$/.test(ne[k] || '') && /^\d+$/.test(ne[k + 1] || '') && /^[YN]$/i.test(ne[k + 2] || '')) {
+        rows.push({uns: +ne[k], fdi: +ne[k + 1], pontic: /^y$/i.test(ne[k + 2])});
+        k += 4;
+      }
+    }
+  }
+  f.teeth = null;
+  if (rows.length) {
+    f.teeth = {list: rows.map(r => r.fdi), system: 'fdi', source: '치식 표(FDI)'};
+  } else {
+    const toks = []; const re = /tooth:\s*(UNS|FDI)_(\d+)/gi; let m;
+    while ((m = re.exec(joined))) toks.push({sys: m[1].toLowerCase(), n: +m[2]});
+    if (toks.length) {
+      const sys = toks[0].sys;
+      f.teeth = {list: toks.filter(t => t.sys === sys).map(t => t.n), system: sys, source: '주문 코멘트'};
+    }
+  }
+
+  // 제작 유닛수: "치아 N" 합계, 없으면 치식 표 행 수
+  const unitLines = ne.filter(l => /^치아\s+\d+$/.test(l)).map(l => parseInt(l.replace(/\D/g, ''), 10));
+  f.unitCount = unitLines.length ? unitLines.reduce((a, b) => a + b, 0) : (rows.length || null);
+  return f;
+}
+
+function applyPastedOrder(text) {
+  const box = document.getElementById('pasteResult');
+  const f = parseDentlinkOrderText(text);
+  if (!(f.orderNum || f.prosthesisType || f.teeth || f.dueDate)) {
+    box.innerHTML = '<div class="pwarn">주문 정보를 찾지 못했습니다. 관리자 "주문 조회" 화면에서 Ctrl+A로 전체 선택한 뒤 복사했는지 확인해주세요. 입력칸은 그대로 두었습니다.</div>';
+    return false;
+  }
+  const $ = id => document.getElementById(id);
+  resetOrderFields();                                       // 이전 주문 값이 남지 않게 비우고 시작
+  if (f.orderNum) $('orderNum').value = f.orderNum;
+  if (f.prosthesisType) $('prosthesisType').value = f.prosthesisType;
+  if (f.material) $('material').value = f.material;
+  if (f.teeth) { $('toothNumbers').value = f.teeth.list.join(', '); $('toothSystem').value = f.teeth.system; }
+  if (f.submittedAt) $('submittedAt').value = f.submittedAt;
+  if (f.dueDate) $('dueDate').value = f.dueDate;
+  if (f.expectedShip) $('expectedShip').value = f.expectedShip;
+  if (f.categoryName) $('categoryName').value = f.categoryName;
+  if (f.productOption) $('productOption').value = f.productOption;
+  if (f.unitCount) $('unitCount').value = String(f.unitCount);
+  if (f.remake > 0) $('remakeInput').value = String(f.remake);
+  document.querySelector('details.advanced-toggle').open = true;
+  renderToothChart();
+
+  const ptSel = $('prosthesisType'), matSel = $('material');
+  const rowsOut = [
+    ['Order Num', f.orderNum],
+    ['보철 유형', f.prosthesisType ? ptSel.options[ptSel.selectedIndex].text : null],
+    ['재료', f.material ? matSel.value : null],
+    ['치아 번호', f.teeth ? `${f.teeth.list.join(', ')} (${f.teeth.system === 'uns' ? 'UNS' : 'FDI'} · ${f.teeth.source})` : null],
+    ['주문 접수일', f.submittedAt ? f.submittedAt + (f.submittedNote ? ` (${f.submittedNote})` : '') : null],
+    ['희망 배송일', f.dueDate],
+    ['예상 출고일', f.expectedShip],
+    ['카테고리명', f.categoryName],
+    ['상품명/옵션', f.productOption],
+    ['제작 유닛수', f.unitCount],
+    ['리메이크 차수', f.remake > 0 ? `${f.remake}차` : null],
+  ];
+  box.innerHTML = `<table>${rowsOut.map(([k, v]) =>
+      `<tr><td class="pk">${k}</td><td class="pv ${v ? '' : 'miss'}">${v ? esc2(String(v)) : '찾지 못함 — 필요하면 직접 입력'}</td></tr>`).join('')}</table>
+    <div class="pnote">✓ 아래 입력칸에 채웠습니다. 값이 맞는지 확인하고, 스캔 파일을 올린 뒤 "판단 실행"을 누르세요.
+    환자 이름·의사 연락처 등은 읽지 않으며, 붙여넣은 원문은 화면에서 지웠습니다.</div>`;
+  return true;
+}
+(function wirePasteArea() {
+  const ta = document.getElementById('pasteArea');
+  let timer = null;
+  ta.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const v = ta.value;
+      if (v.trim().length < 40) return;                     // 짧은 글자는 붙여넣기가 아니라고 보고 무시
+      applyPastedOrder(v);
+      ta.value = '';
+    }, 250);
+  });
+})();
 document.getElementById('scanScore').addEventListener('input', e => {
   document.getElementById('scanValLabel').textContent = e.target.value;
 });
@@ -2539,53 +2929,83 @@ function switchTab(name) {
   if (name==='log') renderJudgmentLog();
 }
 
+const VERDICT_RANK = {PROCEED:0, REVIEW:1, RESCAN:2};
+
 function runEngine() {
   const ptype = document.getElementById('prosthesisType').value;
   const material = document.getElementById('material').value;
-  const toothSystem = document.getElementById('toothSystem').value;
-  const toothNumbers = document.getElementById('toothNumbers').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n))
-    .map(n => toFdi(n, toothSystem)).filter(n => n != null);
-  const scanScore = parseFloat(document.getElementById('scanScore').value);
+  const tctx = getToothContext();             // FDI/UNS 자동 판별 + FDI 환산
+  const toothNumbers = tctx.fdi;
   const submittedRaw = document.getElementById('submittedAt').value;
   const dueRaw = document.getElementById('dueDate').value;
   const submittedAt = submittedRaw ? new Date(submittedRaw) : new Date();
   const hasDue = !!dueRaw;
   // 구 판단식(화면에 안 보이는 참고용)은 날짜가 필요해, 희망 배송일이 비면 접수일+14일로 대신 넣음
   const dueDate = hasDue ? new Date(dueRaw) : new Date(submittedAt.getTime() + 14*86400000);
-  const orderNumEarly = document.getElementById('orderNum').value.trim() || null;
+  const orderNumEarly = document.getElementById('orderNum').value.trim().replace(/^#/, '') || null;
+
+  if (scanFiles.some(f => f.status === 'analyzing')) {
+    document.getElementById('fileStatus').textContent = '분석 중인 파일이 있습니다. 분석이 끝난 뒤 다시 실행해주세요.';
+    return;
+  }
   // 2026-10-01: 수기 입력 체크박스(Bite/대합치/Rush/Shade/치과등급/
   // 재제작이력/스플린트/신규브랜드/소재국가) 전부 제거. "세세한 걸
   // 수기입력으로 판단하면 안 된다"는 지시 반영 — 입력은 단순하게,
   // 재제작이력은 동일 Order Num 재등록시 워크플로우 이력에서 자동 집계.
-  const remakeCount = getAutoRemakeCount(orderNumEarly);
-  const scanDefects = currentAutoDefects;
-  const scanDefectConfidence = lastScanAnalysis
-    ? Math.max(0, ...lastScanAnalysis.defects.filter(([code])=>scanDefects.includes(code)).map(([,c])=>c))
-    : 0;
-
-  const order = {
-    prosthesis_type: ptype, material, tooth_numbers: toothNumbers,
-    scan_score: scanScore, submitted_at: submittedAt, due_date: dueDate,
-    remake_count: remakeCount, remake_reason: null,
-    scan_defects: scanDefects, scan_defect_confidence: scanDefectConfidence,
-  };
+  const remakeCount = Math.max(getAutoRemakeCount(orderNumEarly), parseInt(document.getElementById('remakeInput').value, 10) || 0);  // 이 앱 이력 vs Dentlink 표기 차수 중 큰 값
 
   // ── RxEngine 6개 규칙용 입력 구성 ──
   const daysLeft = hasDue ? Math.max(0, Math.round((dueDate - submittedAt) / (1000*60*60*24))) : null;
   // 스플린트도 체크박스 제거 — 제작 유닛수만으로 연결복잡도 판단(규칙 자체에서 units로 처리).
-  const rxD = {
+  const baseD = {
     cat: ptype,
     units: String(Math.max(1, parseInt(document.getElementById('unitCount').value) || 1)),
     teethCount: toothNumbers.length,
-    qual: lastScanAnalysis ? mapScanScoreToQual(lastScanAnalysis.score) : 'missing',  // 2026-10-07: 파일 없으면 슬라이더 기본값이 아니라 '없음'으로 판단
     days: daysLeft === null ? '' : String(daysLeft),
     remake: remakeCount >= 2 ? '2' : String(remakeCount),
   };
-  const rxResult = runRxRules(rxD);
-  applyBiteHardBlock(rxResult, rxD, lastFileIsBiteType);
-  applyHoleSizeHardBlock(rxResult, lastScanAnalysis);
-  applyNoScanHardBlock(rxResult, lastScanAnalysis);
-  const branchInfo = evaluateBranch(rxD);
+
+  // ── 스캔 파일별 개별 판단 (2026-10-13) ──
+  // 파일마다 qual(스캔 품질)만 다르고 나머지 규칙 입력은 주문 공통이다.
+  // 교합(바이트) 스캔은 상악/하악 스캔과 함께 올라오면 참고용으로만 보고 종합 판정에서 뺀다
+  // (바이트 하드블록은 '교합 스캔만 올라온 경우'를 막기 위한 규칙이므로).
+  const files = scanFiles.filter(f => f.status === 'ok' || f.status === 'error');
+  const hasArchScan = files.some(f => f.status === 'ok' && !f.isBite);
+  const judge = entry => {
+    const a = entry && entry.status === 'ok' ? entry.analysis : null;
+    const d = {...baseD, qual: a ? mapScanScoreToQual(a.score) : 'missing'};  // 2026-10-07: 파일 없으면 슬라이더 기본값이 아니라 '없음'으로 판단
+    const rx = runRxRules(d);
+    if (entry && entry.status === 'error') {
+      rx.verdict = 'RESCAN'; rx.readFailed = entry.error || '알 수 없는 오류';
+    } else {
+      applyBiteHardBlock(rx, d, !!(entry && entry.isBite) && !hasArchScan);
+      applyHoleSizeHardBlock(rx, a);
+      applyNoScanHardBlock(rx, a);
+    }
+    return {entry, rxD: d, rx, branch: evaluateBranch(d), supplementary: !!(entry && entry.status === 'ok' && entry.isBite && hasArchScan)};
+  };
+  const judgments = files.length ? files.map(judge) : [judge(null)];
+
+  // 종합 = 종합 판정에 포함되는 파일 중 가장 나쁜 판정(같으면 리스크점수가 높은 쪽)
+  const counted = judgments.filter(j => !j.supplementary);
+  const worst = counted.reduce((a, b) => {
+    const ra = VERDICT_RANK[a.rx.verdict], rb = VERDICT_RANK[b.rx.verdict];
+    return (rb > ra || (rb === ra && b.rx.score > a.rx.score)) ? b : a;
+  });
+  const rxResult = worst.rx, rxD = worst.rxD, branchInfo = worst.branch;
+  const wa = worst.entry && worst.entry.status === 'ok' ? worst.entry.analysis : null;
+  const scanDefects = autoDefectsOf(worst.entry);
+  const scanDefectConfidence = wa
+    ? Math.max(0, ...wa.defects.filter(([code]) => scanDefects.includes(code)).map(([,c]) => c))
+    : 0;
+  const order = {
+    prosthesis_type: ptype, material, tooth_numbers: toothNumbers,
+    scan_score: wa ? wa.score : parseFloat(document.getElementById('scanScore').value),
+    submitted_at: submittedAt, due_date: dueDate,
+    remake_count: remakeCount, remake_reason: null,
+    scan_defects: scanDefects, scan_defect_confidence: scanDefectConfidence,
+  };
+
   const extra = {
     receivedAt: submittedRaw || null,
     desiredDelivery: dueRaw || null,
@@ -2595,12 +3015,18 @@ function runEngine() {
     teeth: toothNumbers.join(','),
     units: parseInt(rxD.units),
     engineReason: rxResult.biteForced ? 'bite' : rxResult.holeSizeForced ? 'hole' : rxResult.noScanForced ? 'noscan' : null,
+    // 파일별 판단 요약 (원본 스캔은 저장하지 않고 이름·구분·점수·판정만 기록)
+    scanFiles: judgments.filter(j => j.entry).map(j => ({
+      name: j.entry.name, label: j.entry.label,
+      score: j.entry.analysis ? j.entry.analysis.score : null,
+      verdict: j.supplementary ? 'REF' : j.rx.verdict,
+    })),
   };
   const newOrder = addOrderToWorkflow(rxD, rxResult, branchInfo, orderNumEarly, extra);
   updateTopbarStats();
 
   const result = evaluateOrder(order);
-  renderResult(result, rxResult, branchInfo, newOrder);
+  renderResult(result, rxResult, branchInfo, newOrder, {judgments, worst, tctx});
 }
 
 function renderRulesConfig() {
@@ -3086,85 +3512,21 @@ function renderOrderBoard() {
 }
 function branchInfo_desc(o) { return `${o.triggeredBy} 트리거`; }
 
-function renderResult(r, rxResult, branchInfo, wfOrder) {
-  const meta = RESULT_META[r.result];
-  const rxMeta = rxResult.noScanForced
+// 판정 문구(스탬프 머리말) — 하드블록 사유별
+function rxMetaOf(rxResult) {
+  return rxResult.readFailed
+    ? {cls:'rescan', headline:'제작 불가 — 파일을 읽을 수 없음', sub:`스캔 파일 분석에 실패했습니다(${rxResult.readFailed}). 파일을 확인하고 다시 올려주세요.`}
+    : rxResult.noScanForced
     ? {cls:'rescan', headline:'제작 불가 — 스캔 파일 없음', sub:'스캔 파일이 업로드되지 않았습니다. 파일을 올린 뒤 다시 실행해주세요.'}
     : rxResult.biteForced
     ? {cls:'rescan', headline:'제작 불가 — 교합면 확인 불가', sub:'상하악 맞물림으로 교합면을 확인할 수 없어 디자인이 불가능합니다. 재스캔이 반드시 필요합니다.'}
     : rxResult.holeSizeForced
     ? {cls:'rescan', headline:'제작 불가 — 스캔에 큰 구멍', sub:`약 ${rxResult.holeSizeForced}mm 크기의 구멍이 있어 해당 부위 디자인이 불가능합니다. 재스캔이 반드시 필요합니다.`}
     : RX_VERDICT_META[rxResult.verdict];
-  const now = new Date();
-  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const ptypeSelect = document.getElementById('prosthesisType');
-  const ptypeLabel = ptypeSelect.options[ptypeSelect.selectedIndex]?.text || '-';
-  const materialLabel = document.getElementById('material').value || '-';
-  const teethRaw = document.getElementById('toothNumbers').value.trim();
-  const teethLabel = teethRaw ? teethRaw : '\uBBF8\uC0C1';
-  const dueLabel = document.getElementById('dueDate').value || '-';
-  const submittedLabel = document.getElementById('submittedAt').value || '-';
-  const orderNum = (wfOrder && wfOrder.id) || document.getElementById('orderNum').value.trim();
+}
 
-  // \uC138\uC158 \uAE30\uC900 \uACB0\uD568\uC720\uD615\ubcc4 \ub204\uc801 \uce74\uc6b4\ud130 (\ub178\uc158 \ubb38\uc11c\uc758 "Fail Case \uc6d4\uac04 \ub204\uc801 \uac74\uc218" \ud56d\ubaa9 \ubc18\uc601)
-  if (r.result === 'SCAN_REQUIRED') {
-    const defectFlagTmp = r.flags.find(f => f.startsWith('SCAN_DEFECT:'));
-    const key = defectFlagTmp ? defectFlagTmp.split(':')[1] : 'general';
-    sessionFailCounts[key] = (sessionFailCounts[key]||0) + 1;
-    saveWF();
-  }
-
-  // v9 (2026-08-27): 판정체계를 RxEngine(사업계획서 원문) 기준
-  // PROCEED/REVIEW/RESCAN으로 통일. 예전 APPROVED/SCAN_REQUIRED 체계는
-  // 부록성 참고정보로만 남김(스캔 결함 자동감지는 여전히 이 세션 자산).
-
-  let html = `
-    <div class="report-header">
-      <div class="report-meta">Order Num ${esc2(orderNum)} \u00B7 \uC0DD\uC131 ${ts} \u00B7 RxEngine v1.0</div>
-    </div>
-
-    <div class="rx-verdict-stamp ${rxMeta.cls}">
-      <div class="rx-verdict-top">
-        <span class="rx-verdict-label">${rxResult.verdict}</span>
-        <span class="rx-verdict-score">\uB9AC\uC2A4\uD06C\uC810\uC218 ${rxResult.score} / 100</span>
-      </div>
-      <div class="rx-verdict-headline">${rxMeta.headline}</div>
-      <div class="rx-verdict-sub">${rxMeta.sub}</div>
-    </div>
-
-    ${wfOrder ? `<div class="alert-box alert-info no-print">
-      <div class="alert-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 2.5v3M13.5 2.5v3M3 8h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
-      <div class="alert-body">
-        <div class="alert-title">주문 #${esc2(wfOrder.id)}가 워크플로우에 ${(wfOrder.pastJudgments||[]).length ? "재판단 반영되었습니다" : "등록되었습니다"}</div>
-        <div class="alert-text">
-          현재 상태: <b>${STATES[wfOrder.state].label}</b> ${wfOrder.branchResult==='EXCEPTION' ? '(자동으로 예외처리됨)' : ''}
-          \u00B7 <a href="#" onclick="switchTab('board'); return false;" class="wf-link">주문 현황에서 확인 \u2192</a>
-        </div>
-        ${(rxResult.verdict==='PROCEED' && wfOrder.branchResult==='EXCEPTION') || (rxResult.verdict==='RESCAN' && wfOrder.branchResult==='AUTO') ? `
-          <div class="alert-subnote">
-            <b>RxEngine 판정(${rxResult.verdict})과 워크플로우 분기결과(${wfOrder.branchResult})가 다릅니다 — 버그 아닙니다.</b><br>
-            RxEngine은 여러 규칙을 점수로 <b>합산</b>해서 종합 판단하고, 워크플로우 분기규칙은 특정 조건(예: 스캔품질 불량)을
-            <b>절대기준으로</b> 보아 다른 점수와 무관하게 등록결정합니다. 판단 엔진과 워크플로우는 서로 다른 목적을 가진 별개 시스템입니다.
-          </div>` : ''}
-      </div>
-    </div>` : ''}
-
-    <div id="finalDecisionPanel" class="no-print"></div>
-
-    <div class="case-summary-grid">
-      <div><span class="cs-k">\uBCF4\uCCA0 \uC720\uD615</span><span class="cs-v">${esc2(ptypeLabel)}</span></div>
-      <div><span class="cs-k">\uC7AC\uB8CC</span><span class="cs-v">${esc2(materialLabel)}</span></div>
-      <div><span class="cs-k">\uCE58\uC544 \uBC88\uD638</span><span class="cs-v">${esc2(teethLabel)}</span></div>
-      <div><span class="cs-k">\uC81C\uC791 \uC720\uB2DB\uC218</span><span class="cs-v">${esc2(document.getElementById('unitCount').value || '1')}</span></div>
-      ${document.getElementById('categoryName').value.trim() ? `<div><span class="cs-k">\uCE74\uD14C\uACE0\uB9AC\uBA85</span><span class="cs-v">${esc2(document.getElementById('categoryName').value.trim())}</span></div>` : ''}
-      ${document.getElementById('productOption').value.trim() ? `<div><span class="cs-k">\uC0C1\uD488\uBA85/\uC635\uC158</span><span class="cs-v">${esc2(document.getElementById('productOption').value.trim())}</span></div>` : ''}
-      ${document.getElementById('expectedShip').value ? `<div><span class="cs-k">\uC608\uC0C1 \uCD9C\uACE0\uC77C</span><span class="cs-v">${esc2(document.getElementById('expectedShip').value)}</span></div>` : ''}
-      <div><span class="cs-k">\uB0A9\uAE30</span><span class="cs-v">${esc2(submittedLabel)} \u2192 ${esc2(dueLabel)}</span></div>
-      ${lastScanAnalysis ? `<div><span class="cs-k">\uC2A4\uCE94\uD30C\uC77C</span><span class="cs-v">${esc2(lastScanAnalysis.format.toUpperCase())} \u00B7 ${lastScanAnalysis.triangleCount.toLocaleString()}\uAC1C</span></div>` : ''}
-    </div>
-  `;
-
-  html += `<div class="section-title">\uD310\uB2E8 \uADFC\uAC70 (${RX_RULES.length}\uC885 \uADDC\uCE59)</div>
+function buildRuleListHtml(rxResult) {
+  return `<div class="section-title">판단 근거 (${RX_RULES.length}종 규칙)</div>
     <div class="rule-list">
       ${rxResult.results.map(rr => {
         if (!rr.active) {
@@ -3175,7 +3537,7 @@ function renderResult(r, rxResult, branchInfo, wfOrder) {
               <div class="ri-msg">점수 미반영 (실측 검증 없는 규칙)</div>
             </div>
             <div class="ri-right">
-              <div class="ri-score">\u2014</div>
+              <div class="ri-score">—</div>
             </div>
           </div>`;
         }
@@ -3193,22 +3555,181 @@ function renderResult(r, rxResult, branchInfo, wfOrder) {
         </div>`;
       }).join('')}
     </div>`;
+}
 
-  html += buildOverviewSection(lastScanAnalysis);
-  html += buildProsthesisLocationSection(lastScanAnalysis, teethRaw);
-  html += buildFindingsScorecard(lastScanAnalysis);
-  html += buildScopeBanner(lastScanAnalysis);
-  // \uBC14\uC774\uD2B8 \uAD00\uB828 \uACBD\uACE0\uB294 \uC774\uC81C \uBA54\uC778 \uD310\uC815\uC5D0 \uC9C1\uC811 \uBC18\uC601\uB428(rxMeta.biteForced \uCC38\uC870)
-  // \u2014 \uBCC4\uB3C4 \uACBD\uACE0\uBC15\uC2A4\uB294 \uC911\uBCF5\uC774\uB77C \uC81C\uAC70\uD568 (2026-09-30)
-  html += buildDefectCardsSection(lastScanAnalysis, orderNum);
+// 파일 1개 분량의 상세 섹션(개관·지대치 위치·결함 지표·결함 카드·육안 점검 안내)
+function buildScanBodyHtml(j, tctx, orderNum, sfx) {
+  const a = j.entry && j.entry.status === 'ok' ? j.entry.analysis : null;
+  const arch = j.entry ? j.entry.label : null;
+  if (j.supplementary) {
+    return buildOverviewSection(a, sfx) + buildInspectionGuide(a);
+  }
+  return buildOverviewSection(a, sfx)
+    + buildProsthesisLocationSection(a, tctx, arch)
+    + buildFindingsScorecard(a)
+    + buildScopeBanner(a)
+    // 바이트 관련 경고는 이제 메인 판정에 직접 반영됨(rxMeta.biteForced 참조)
+    // — 별도 경고박스는 중복이라 제거함 (2026-09-30)
+    + buildDefectCardsSection(a, orderNum, sfx)
+    + buildInspectionGuide(a);
+}
 
-  html += buildInspectionGuide(lastScanAnalysis);
+function scanTabShortName(name) {
+  const base = String(name).replace(/\.(stl|ply)$/i, '');
+  return base.length > 16 ? base.slice(0, 15) + '…' : base;
+}
+function judgmentChip(j) {
+  if (j.supplementary) return {cls: 'ref', text: '참고'};
+  return {cls: String(j.rx.verdict).toLowerCase(), text: j.rx.verdict};
+}
+function selectScanTab(i) {
+  document.querySelectorAll('#resultArea .scan-tab').forEach(b => b.classList.toggle('on', +b.dataset.idx === i));
+  document.querySelectorAll('#resultArea .scan-panel').forEach(p => p.classList.toggle('active', +p.dataset.idx === i));
+}
+
+function renderResult(r, rxResult, branchInfo, wfOrder, ctx) {
+  const {judgments, worst, tctx} = ctx;
+  const multi = judgments.length > 1;
+  const startIdx = Math.max(0, judgments.indexOf(worst));
+  const rxMeta = rxMetaOf(rxResult);
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const ptypeSelect = document.getElementById('prosthesisType');
+  const ptypeLabel = ptypeSelect.options[ptypeSelect.selectedIndex]?.text || '-';
+  const materialLabel = document.getElementById('material').value || '-';
+  const teethRaw = tctx.raw.trim();
+  const teethLabel = !tctx.nums.length ? '미상'
+    : (tctx.system === 'uns' && tctx.fdi.length ? `${teethRaw} (UNS → FDI ${tctx.fdi.join(', ')})` : teethRaw);
+  const dueLabel = document.getElementById('dueDate').value || '-';
+  const submittedLabel = document.getElementById('submittedAt').value || '-';
+  const orderNum = (wfOrder && wfOrder.id) || document.getElementById('orderNum').value.trim();
+
+  // 세션 기준 결함유형별 누적 카운터 (노션 문서의 "Fail Case 월간 누적 건수" 항목 반영)
+  if (r.result === 'SCAN_REQUIRED') {
+    const defectFlagTmp = r.flags.find(f => f.startsWith('SCAN_DEFECT:'));
+    const key = defectFlagTmp ? defectFlagTmp.split(':')[1] : 'general';
+    sessionFailCounts[key] = (sessionFailCounts[key]||0) + 1;
+    saveWF();
+  }
+
+  // v9 (2026-08-27): 판정체계를 RxEngine(사업계획서 원문) 기준
+  // PROCEED/REVIEW/RESCAN으로 통일. 예전 APPROVED/SCAN_REQUIRED 체계는
+  // 부록성 참고정보로만 남김(스캔 결함 자동감지는 여전히 이 세션 자산).
+
+  const okFileCount = judgments.filter(j => j.entry).length;
+  const scanCellHtml = !okFileCount ? ''
+    : multi
+      ? `<div><span class="cs-k">스캔파일</span><span class="cs-v">${okFileCount}개 (${judgments.filter(j => j.entry).map(j => SCAN_LABEL_TEXT[j.entry.label]).join(' · ')})</span></div>`
+      : (worst.entry && worst.entry.analysis
+          ? `<div><span class="cs-k">스캔파일</span><span class="cs-v">${esc2(worst.entry.analysis.format.toUpperCase())} · ${worst.entry.analysis.triangleCount.toLocaleString()}개</span></div>` : '');
+
+  let html = `
+    <div class="report-header">
+      <div class="report-meta">Order Num ${esc2(orderNum)} · 생성 ${ts} · RxEngine v1.0</div>
+    </div>
+
+    <div class="rx-verdict-stamp ${rxMeta.cls}">
+      <div class="rx-verdict-top">
+        <span class="rx-verdict-label">${rxResult.verdict}</span>
+        <span class="rx-verdict-score">리스크점수 ${rxResult.score} / 100</span>
+      </div>
+      <div class="rx-verdict-headline">${rxMeta.headline}</div>
+      <div class="rx-verdict-sub">${rxMeta.sub}</div>
+      ${multi && worst.entry ? `<div class="rx-verdict-sub" style="margin-top:6px;">종합 판정 기준: <b>${SCAN_LABEL_TEXT[worst.entry.label]} · ${esc2(worst.entry.name)}</b> (파일별 판정 중 가장 나쁜 결과)</div>` : ''}
+    </div>
+
+    ${wfOrder ? `<div class="alert-box alert-info no-print">
+      <div class="alert-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 2.5v3M13.5 2.5v3M3 8h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+      <div class="alert-body">
+        <div class="alert-title">주문 #${esc2(wfOrder.id)}가 워크플로우에 ${(wfOrder.pastJudgments||[]).length ? "재판단 반영되었습니다" : "등록되었습니다"}</div>
+        <div class="alert-text">
+          현재 상태: <b>${STATES[wfOrder.state].label}</b> ${wfOrder.branchResult==='EXCEPTION' ? '(자동으로 예외처리됨)' : ''}
+          · <a href="#" onclick="switchTab('board'); return false;" class="wf-link">주문 현황에서 확인 →</a>
+        </div>
+        ${(rxResult.verdict==='PROCEED' && wfOrder.branchResult==='EXCEPTION') || (rxResult.verdict==='RESCAN' && wfOrder.branchResult==='AUTO') ? `
+          <div class="alert-subnote">
+            <b>RxEngine 판정(${rxResult.verdict})과 워크플로우 분기결과(${wfOrder.branchResult})가 다릅니다 — 버그 아닙니다.</b><br>
+            RxEngine은 여러 규칙을 점수로 <b>합산</b>해서 종합 판단하고, 워크플로우 분기규칙은 특정 조건(예: 스캔품질 불량)을
+            <b>절대기준으로</b> 보아 다른 점수와 무관하게 등록결정합니다. 판단 엔진과 워크플로우는 서로 다른 목적을 가진 별개 시스템입니다.
+          </div>` : ''}
+      </div>
+    </div>` : ''}
+
+    <div id="finalDecisionPanel" class="no-print"></div>
+
+    <div class="case-summary-grid">
+      <div><span class="cs-k">보철 유형</span><span class="cs-v">${esc2(ptypeLabel)}</span></div>
+      <div><span class="cs-k">재료</span><span class="cs-v">${esc2(materialLabel)}</span></div>
+      <div><span class="cs-k">치아 번호</span><span class="cs-v">${esc2(teethLabel)}</span></div>
+      <div><span class="cs-k">제작 유닛수</span><span class="cs-v">${esc2(document.getElementById('unitCount').value || '1')}</span></div>
+      ${document.getElementById('categoryName').value.trim() ? `<div><span class="cs-k">카테고리명</span><span class="cs-v">${esc2(document.getElementById('categoryName').value.trim())}</span></div>` : ''}
+      ${document.getElementById('productOption').value.trim() ? `<div><span class="cs-k">상품명/옵션</span><span class="cs-v">${esc2(document.getElementById('productOption').value.trim())}</span></div>` : ''}
+      ${document.getElementById('expectedShip').value ? `<div><span class="cs-k">예상 출고일</span><span class="cs-v">${esc2(document.getElementById('expectedShip').value)}</span></div>` : ''}
+      <div><span class="cs-k">납기</span><span class="cs-v">${esc2(submittedLabel)} → ${esc2(dueLabel)}</span></div>
+      ${scanCellHtml}
+    </div>
+  `;
+
+  if (!multi) {
+    // 파일 1개(또는 0개): 기존 화면과 동일한 구성
+    html += buildRuleListHtml(rxResult);
+    html += buildScanBodyHtml(worst, tctx, orderNum, '');
+  } else {
+    // 파일 여러 개: 파일별 요약표 + 파일별 탭 (각 탭에 그 파일만의 판단 근거·상세)
+    const hasSupp = judgments.some(j => j.supplementary);
+    html += `<div class="section-title">스캔 파일별 판정 (${judgments.length}개)</div>
+      <table class="sfs-table">
+        <thead><tr><th>구분</th><th>파일</th><th>스캔 점수</th><th>판정</th></tr></thead>
+        <tbody>
+          ${judgments.map((j, i) => {
+            const chip = judgmentChip(j);
+            const e = j.entry;
+            const score = e && e.analysis ? e.analysis.score : '—';
+            const txt = e && e.status === 'error' ? 'RESCAN · 읽기 실패' : chip.text;
+            return `<tr class="sfs-click" onclick="selectScanTab(${i})">
+              <td>${e ? SCAN_LABEL_TEXT[e.label] : '—'}</td>
+              <td style="font-family:var(--mono); font-size:11px;">${e ? esc2(e.name) : '—'}</td>
+              <td style="font-family:var(--mono);">${score}</td>
+              <td><span class="st-v ${chip.cls}">${txt}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div class="hint">종합 판정은 파일별 판정 중 가장 나쁜 결과를 따릅니다.${hasSupp ? ' 교합(바이트) 스캔은 상악·하악 스캔과 함께 올라온 경우 참고용으로만 보고 종합 판정에서 제외합니다.' : ''} 파일 줄이나 아래 탭을 누르면 파일별 상세를 볼 수 있습니다.</div>
+
+      <div class="scan-tabs no-print" id="scanTabs">
+        ${judgments.map((j, i) => {
+          const chip = judgmentChip(j);
+          return `<button type="button" class="scan-tab ${i === startIdx ? 'on' : ''}" data-idx="${i}" onclick="selectScanTab(${i})">${j.entry ? `${SCAN_LABEL_TEXT[j.entry.label]} · ${esc2(scanTabShortName(j.entry.name))}` : '파일 없음'}<span class="st-v ${chip.cls}">${chip.text}</span></button>`;
+        }).join('')}
+      </div>`;
+    judgments.forEach((j, i) => {
+      const e = j.entry;
+      const sfx = `_f${i}`;
+      const meta = j.supplementary
+        ? {cls:'ref', headline:'교합(바이트) 스캔 — 참고용', sub:'상악·하악 스캔과 함께 올라온 교합 스캔입니다. 맞물린 상태라 구멍·가림 지표로 품질을 판단할 수 없어 종합 판정에서 제외했습니다. 맞물림 위치만 육안으로 확인해주세요.'}
+        : rxMetaOf(j.rx);
+      html += `<div class="scan-panel ${i === startIdx ? 'active' : ''}" data-idx="${i}">
+        <div class="section-title">${e ? `${SCAN_LABEL_TEXT[e.label]} 스캔 · ${esc2(e.name)}` : '스캔 파일 없음'}</div>
+        <div class="rx-verdict-stamp ${meta.cls}">
+          <div class="rx-verdict-top">
+            <span class="rx-verdict-label">${j.supplementary ? '참고' : j.rx.verdict}</span>
+            <span class="rx-verdict-score">${j.supplementary ? '종합 판정 제외' : `리스크점수 ${j.rx.score} / 100`}</span>
+          </div>
+          <div class="rx-verdict-headline">${meta.headline}</div>
+          <div class="rx-verdict-sub">${meta.sub}</div>
+        </div>
+        ${j.supplementary ? '' : buildRuleListHtml(j.rx)}
+        ${buildScanBodyHtml(j, tctx, orderNum, sfx)}
+      </div>`;
+    });
+  }
 
   html += `
     <div class="report-footer">
-      \uAC80\uC99D\uB41C 3\uAC1C \uC9C0\uD45C(\uAD6C\uBA4D/\uC774\uC911\uC2A4\uCE94/\uC774\uBB3C\uC9C8) \uC678\uC758 \uC784\uC0C1\uC801 \uD310\uB2E8(margin\u00B7\uC778\uC811\uCE58\u00B7\uD615\uD0DC \uC801\uD569\uC131 \uB4F1)\uC740
-      \uB2F4\uB2F9 \uAE30\uACF5\uC0AC\u00B7\uC758\uB8CC\uC9C4\uC758 \uC721\uC548 \uD655\uC778\uC744 \uB530\uB985\uB2C8\uB2E4.<br>
-      \uC0DD\uC131: ${ts}
+      검증된 3개 지표(구멍/이중스캔/이물질) 외의 임상적 판단(margin·인접치·형태 적합성 등)은
+      담당 기공사·의료진의 육안 확인을 따릅니다.<br>
+      생성: ${ts}
     </div>`;
 
   document.getElementById('resultArea').innerHTML = html;
@@ -3217,32 +3738,35 @@ function renderResult(r, rxResult, branchInfo, wfOrder) {
   document.getElementById('pdfBtn').style.display = 'inline-block';
   switchTab('result');
 
-  if (lastScanAnalysis && lastScanAnalysis.triangles) {
-    const markers = getDefectMarkers(lastScanAnalysis);
-    const teethRaw = document.getElementById('toothNumbers').value.trim();
-    const toothMarkers = getProsthesisToothMarkers(lastScanAnalysis, teethRaw);
-    const canvas = document.getElementById('meshCanvas');
+  // 파일별 3D 렌더 / 결함 확대 이미지
+  judgments.forEach((j, i) => {
+    const a = j.entry && j.entry.status === 'ok' ? j.entry.analysis : null;
+    if (!a || !a.triangles) return;
+    const sfx = multi ? `_f${i}` : '';
+    const markers = j.supplementary ? [] : getDefectMarkers(a);
+    const toothMarkers = j.supplementary ? [] : getProsthesisToothMarkers(a, tctx.fdi, j.entry.label);
+    const canvas = document.getElementById('meshCanvas' + sfx);
     if (canvas) {
       const allMarkers = [
         ...markers.map(mk => ({point:mk.center, color:'#B23A2E'})),
         ...toothMarkers.map(tm => ({point:tm.center, color:'#1E4FA0', label:tm.tooth})),
       ];
-      const info = renderMeshCanvas(canvas, lastScanAnalysis.triangles, allMarkers);
-      const cap = document.getElementById('meshCanvasCaption');
+      const info = renderMeshCanvas(canvas, a.triangles, allMarkers);
+      const cap = document.getElementById('meshCanvasCaption' + sfx);
       const parts = [];
-      if (markers.length) parts.push(`\uBE68\uAC04 \uBC88\uD638=\uD655\uC778\uD544\uC694 \uBD80\uC704 ${markers.length}\uAC74`);
-      if (toothMarkers.length) parts.push(`\uD30C\uB791 \uCE58\uC544\uBC88\uD638=\uC9C0\uB300\uCE58 \uC608\uC0C1\uC704\uCE58 ${toothMarkers.length}\uAC74`);
+      if (markers.length) parts.push(`빨간 번호=확인필요 부위 ${markers.length}건`);
+      if (toothMarkers.length) parts.push(`파란 치아번호=지대치 예상위치 ${toothMarkers.length}건`);
       if (cap) cap.textContent = parts.length
-        ? parts.join(' \u00B7 ') + ' \u2014 \uC544\uB798\uC5D0\uC11C \uC0C1\uC138\uD788 \uBCF4\uC5EC\uB4DC\uB9BD\uB2C8\uB2E4'
+        ? parts.join(' · ') + ' — 아래에서 상세히 보여드립니다'
         : (info.renderedTriangleCount < info.totalTriangleCount
-          ? `\uD45C\uC2DC\uC6A9 \uC0D8\uD50C\uB9C1 ${info.renderedTriangleCount.toLocaleString()}/${info.totalTriangleCount.toLocaleString()}\uAC1C \uC0BC\uAC01\uD615 (\uBD84\uC11D\uC740 \uC804\uCCB4 \uB370\uC774\uD130 \uC0AC\uC6A9)`
-          : `\uC804\uCCB4 ${info.totalTriangleCount.toLocaleString()}\uAC1C \uC0BC\uAC01\uD615 \uB80C\uB354\uB9C1`);
+          ? `표시용 샘플링 ${info.renderedTriangleCount.toLocaleString()}/${info.totalTriangleCount.toLocaleString()}개 삼각형 (분석은 전체 데이터 사용)`
+          : `전체 ${info.totalTriangleCount.toLocaleString()}개 삼각형 렌더링`);
     }
-    markers.forEach((mk, i) => {
-      const zc = document.getElementById(`defectCanvas_${i+1}`);
-      if (zc) renderZoomedMesh(zc, lastScanAnalysis.triangles, mk.center, mk.type==='hole' ? Math.max(6, mk.data.physicalSize*0.8) : 6);
+    markers.forEach((mk, k) => {
+      const zc = document.getElementById(`defectCanvas${sfx}_${k+1}`);
+      if (zc) renderZoomedMesh(zc, a.triangles, mk.center, mk.type==='hole' ? Math.max(6, mk.data.physicalSize*0.8) : 6);
     });
-  }
+  });
 }
 
 function clusterNearbyPoints(items, distFn, mergeThreshold) {
@@ -3306,16 +3830,18 @@ function getDefectMarkers(analysis) {
   return markers;
 }
 
-function getProsthesisToothMarkers(analysis, teethRaw) {
+function getProsthesisToothMarkers(analysis, fdiList, arch) {
   // 치아번호가 입력됐으면 FDI 확정 매핑으로 "지대치 예상 위치"를 짚어준다.
   // 이건 결함 감지가 아니라 "여기가 보철 대상 부위이니 margin을 반드시
   // 확인하라"는 안내 마커 — 정상 판정이어도 항상 유용한 콘텐츠가 되게 함.
-  if (!analysis || !teethRaw) return [];
-  const nums = teethRaw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  // (2026-10-13) fdiList는 UNS 입력도 FDI로 환산된 목록. 파일이 상악/하악으로
+  // 구분돼 있으면 그 악궁의 치아만 표시한다(하악 치아를 상악 스캔 위에 찍지 않음).
+  if (!analysis || !fdiList || !fdiList.length) return [];
   const outline = analysis.metrics.outlinePoints;
   const seen = new Set();
   const markers = [];
-  for (const num of nums) {
+  for (const num of fdiList) {
+    if ((arch === 'upper' || arch === 'lower') && archOfFdi(num) !== arch) continue;
     const zone = fdiToZoneName(num);
     if (!zone || seen.has(zone)) continue;
     seen.add(zone);
@@ -3325,22 +3851,32 @@ function getProsthesisToothMarkers(analysis, teethRaw) {
   return markers;
 }
 
-function buildProsthesisLocationSection(analysis, teethRaw) {
-  if (!analysis || !teethRaw) return '';
-  const markers = getProsthesisToothMarkers(analysis, teethRaw);
-  if (!markers.length) return '';
-  return `<div class="section-title">\uC9C0\uB300\uCE58(\uBCF4\uCCA0 \uB300\uC0C1) \uC608\uC0C1 \uC704\uCE58</div>
-    <div class="tooth-loc-note">\uD30C\uB791 \uBC88\uD638 = \uC785\uB825\uD558\uC2E0 \uCE58\uC544 \uBC88\uD638\uC758 \uC608\uC0C1 \uC704\uCE58\uC785\uB2C8\uB2E4 (FDI \uBC88\uD638\uCCB4\uACC4 \uAE30\uC900 \uD655\uC815\uC801 \uB9E4\uD551 \u2014 \uACB0\uD568 \uAC10\uC9C0\uC640 \uBB34\uAD00\uD558\uAC8C \uD56D\uC0C1 \uD45C\uC2DC). \uC790\uB3D9 \uD310\uBCC4\uC5D0\uC11C \uC774\uC0C1 \uC5C6\uB2E4\uACE0 \uB098\uC640\uB3C4, \uC774 \uBD80\uC704\uC758 margin\uC740 <b>\uBC18\uB4DC\uC2DC \uC721\uC548\uC73C\uB85C \uC9C1\uC811 \uD655\uC778</b>\uD574\uC8FC\uC138\uC694.
+function buildProsthesisLocationSection(analysis, tctx, arch) {
+  if (!analysis || !tctx.fdi.length) return '';
+  const markers = getProsthesisToothMarkers(analysis, tctx.fdi, arch);
+  const other = (arch === 'upper' || arch === 'lower') ? tctx.fdi.filter(n => archOfFdi(n) !== arch) : [];
+  if (!markers.length && !other.length) return '';
+  const archName = arch === 'upper' ? '상악' : '하악';
+  const otherName = arch === 'upper' ? '하악' : '상악';
+  let h = `<div class="section-title">지대치(보철 대상) 예상 위치</div>`;
+  if (other.length) {
+    h += `<div class="tooth-loc-note">입력한 치아 중 ${other.map(n => toothLabel(n, tctx)).join(', ')}번은 ${otherName} 치아라 이 ${archName} 스캔에는 표시하지 않습니다 (${otherName} 스캔에서 확인).</div>`;
+  }
+  if (markers.length) {
+    h += `<div class="tooth-loc-note">파란 번호 = 입력하신 치아 번호의 예상 위치입니다 (FDI 번호체계 기준 확정적 매핑 — 결함 감지와 무관하게 항상 표시). 자동 판별에서 이상 없다고 나와도, 이 부위의 margin은 <b>반드시 육안으로 직접 확인</b>해주세요.
     <div class="tooth-loc-list">
-      ${markers.map(mk => `<span class="tooth-loc-chip">${mk.tooth}\uBC88 \u2014 ${mk.zone}</span>`).join('')}
+      ${markers.map(mk => `<span class="tooth-loc-chip">${tctx.system === 'uns' ? `${toothLabel(mk.tooth, tctx)}` : `${mk.tooth}번`} — ${mk.zone}</span>`).join('')}
     </div></div>`;
+  }
+  return h;
 }
 
-function buildOverviewSection(analysis) {
+function buildOverviewSection(analysis, sfx) {
   if (!analysis) return '';
+  sfx = sfx || '';
   return `<div class="section-title">\uC804\uCCB4 \uAC1C\uAD00</div>
-    <canvas id="meshCanvas" width="500" height="300" class="mesh-canvas-hero"></canvas>
-    <div id="meshCanvasCaption" class="hint" style="margin-top:4px;"></div>`;
+    <canvas id="meshCanvas${sfx}" width="500" height="300" class="mesh-canvas-hero"></canvas>
+    <div id="meshCanvasCaption${sfx}" class="hint" style="margin-top:4px;"></div>`;
 }
 
 const DEFECT_CARD_TEXT = {
@@ -3371,8 +3907,9 @@ const DEFECT_CARD_TEXT = {
   },
 };
 
-function buildDefectCardsSection(analysis, orderNum) {
+function buildDefectCardsSection(analysis, orderNum, sfx) {
   if (!analysis) return '';
+  sfx = sfx || '';
   const markers = getDefectMarkers(analysis);
   if (!markers.length) return '';
   const m = analysis.metrics;
@@ -3409,7 +3946,7 @@ function buildDefectCardsSection(analysis, orderNum) {
         </div>
         <div class="dc-learn">${learnText}</div>
         <div class="dc-imgbox">
-          <canvas id="defectCanvas_${num}" width="380" height="260" class="dc-canvas"></canvas>
+          <canvas id="defectCanvas${sfx}_${num}" width="380" height="260" class="dc-canvas"></canvas>
           <div class="dc-imglabel">${mk.region} \uD655\uB300 \uC774\uBBF8\uC9C0</div>
         </div>
         <details class="dc-details">
@@ -3666,87 +4203,60 @@ function esc2(s){
   return d.innerHTML;
 }
 
-let lastScanAnalysis = null;  // 업로드 파일 분석 결과 캐시 (리포트에 씀)
-let lastFileIsBiteType = false;  // 파일명 기반 바이트스캔 자동판별 결과
 let sessionFailCounts = {};   // 결함유형별 이번 세션 누적 Fail 건수 (서버 없어 세션 한정)
 
-function wireDropZone(zoneId, inputId, onFile) {
+function wireDropZone(zoneId, inputId, onFiles) {
   const zone = document.getElementById(zoneId);
   const input = document.getElementById(inputId);
-  input.addEventListener('change', e => onFile(e.target.files[0]));
+  input.addEventListener('change', e => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = '';              // 같은 파일을 빼고 다시 올릴 수 있도록 선택값 비움
+    onFiles(picked);
+  });
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'var(--blue)'; });
   zone.addEventListener('dragleave', () => zone.style.borderColor = 'var(--line-strong)');
   zone.addEventListener('drop', e => {
     e.preventDefault(); zone.style.borderColor = 'var(--line-strong)';
-    if (e.dataTransfer.files.length) onFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files.length) onFiles(Array.from(e.dataTransfer.files));
   });
 }
 
-wireDropZone('dropZone', 'fileInput', handleScanFile);
+wireDropZone('dropZone', 'fileInput', addScanFiles);
 
-function renderDiagnosticData(analysis, filename) {
-  // 진단모드 — 신규 결함유형(margin·컨택·대합치 등) 캘리브레이션을 위한
-  // 원시 지표 전체 노출. 공식 3개 지표와 달리 "검증됨"이 아니라
-  // "계산은 되지만 근거 미확보"인 값들도 그대로 보여줌 — 정직하게 표기.
-  const m = analysis.metrics;
-  const area = document.getElementById('diagArea');
-  if (!area) return;
-  const rows = [
-    ['\uC0BC\uAC01\uD615 \uAC1C\uC218', m.triangleCount.toLocaleString(), '\uCC38\uACE0'],
-    ['\uD3C9\uADE0 \uC0BC\uAC01\uD615 \uBA74\uC801', m.meanTriangleArea.toExponential(3), '\uCC38\uACE0 (\uD574\uC0C1\uB3C4 \uCD94\uC815\uC6A9)'],
-    ['\uD1F4\uD654(degenerate) \uC0BC\uAC01\uD615 \uBE44\uC728', (m.degenerateRatio*100).toFixed(3)+'%', '\uBBF8\uAC80\uC99D'],
-    ['\uACBD\uACC4(boundary) \uC5E3\uC9C0 \uBE44\uC728', (m.boundaryEdgeRatio*100).toFixed(2)+'%', '\uBBF8\uAC80\uC99D'],
-    ['\uAD6C\uBA4D/\uB204\uB77D \uBE44\uC728 \u2605', (m.interiorHoleRatio*100).toFixed(2)+'%', '\uACF5\uC2DD(22.0% \uAE30\uC900)'],
-    ['\uC774\uC911\uC2A4\uCE94 \uBE44\uC728 \u2605', (m.nonManifoldRatio*100).toFixed(3)+'%', '\uACF5\uC2DD(1.0% \uAE30\uC900)'],
-    ['\uC774\uBB3C\uC9C8\uC870\uAC01 \uBE44\uC728 \u2605', (m.fragmentVertexRatio*100).toFixed(3)+'%', '\uACF5\uC2DD(3.0% \uAE30\uC900)'],
-    ['\uC774\uBB3C\uC9C8\uC870\uAC01 \uAC1C\uC218', m.fragmentCount, '\uACF5\uC2DD'],
-    ['\uC88C\uC6B0\uB300\uCE6D\uC131(normalized)', m.asymmetry ? (m.asymmetry.normalizedAsymmetry*100).toFixed(2)+'%' : 'N/A (\uC544\uCE58\uACE1\uC120 \uBD80\uC871)', '\uD3D0\uAE30\uB428(2026-08 \uC2E4\uD328) \u2014 \uCC38\uACE0\uB9CC'],
-  ];
-  area.innerHTML = `
-    <table class="rule-table-plain">
-      <tr><td class="rtp-k">\uD30C\uC77C\uBA85</td><td class="rtp-v" colspan="2">${esc2(filename)}</td></tr>
-      ${rows.map(([k,v,note]) => `<tr><td class="rtp-k">${k}</td><td class="rtp-v mono">${v}</td><td class="rtp-v" style="color:var(--ink-faint); font-size:10px;">${note}</td></tr>`).join('')}
-    </table>
-    <div class="hint" style="margin-top:6px;">\u2605\uD45C\uC2DC = \uD604\uC7AC \uACF5\uC2DD \uD310\uB2E8\uC5D0 \uC0AC\uC6A9 \uC911. \uB098\uBA38\uC9C0\uB294 \uCC38\uACE0\uC6A9\uC774\uAC70\uB098 \uD3D0\uAE30\uB41C \uC9C0\uD45C\uC785\uB2C8\uB2E4. \uC0C8 \uACB0\uD568\uC720\uD615 \uC2E4\uC0AC\uB840\uB97C \uC5EC\uB7EC \uAC74 \uC5C5\uB85C\uB4DC\uD574\uBCF4\uBA74\uC11C \uC774 \uC22B\uC790\uB4E4\uC774 \uC5B4\uB5BB\uAC8C \uB2EC\uB77C\uC9C0\uB294\uC9C0 \uBE44\uAD50\uD558\uBA74 \uC0C8 \uAE30\uC900\uC744 \uCC3E\uB294 \uB370 \uB3C4\uC6C0\uC774 \uB429\uB2C8\uB2E4.</div>`;
-}
-
-async function handleScanFile(file) {
-  if (!file) return;
+// 여러 파일을 순서대로 하나씩 따로 분석한다 (합치지 않음). 올릴 때마다 목록에 추가된다.
+async function addScanFiles(fileArr) {
+  const files = Array.from(fileArr || []);
+  if (!files.length) return;
   const statusEl = document.getElementById('fileStatus');
-  statusEl.innerHTML = `<span class="spinner"></span> 분석 중... (${esc2(file.name)})`;
-  document.getElementById('dropZone').classList.add('analyzing');
-  try {
-    const buf = await file.arrayBuffer();
-    const t0 = performance.now();
-    const r = analyzeScanFile(buf);
-    const ms = Math.round(performance.now() - t0);
-    lastScanAnalysis = r;
-
-    // 스캔 점수 자동 갱신 (사람이 입력 안 함 — 파일 분석 결과)
-    document.getElementById('scanScore').value = r.score;
-    document.getElementById('scanValLabel').textContent = r.score;
-
-    // AI가 찾은 결함을 상태변수에 저장 후 뱃지로 표시 (사람이 클릭하는 게 아님)
-    currentAutoDefects = r.defects.filter(([,c]) => c >= 0.6).map(([code]) => code);
-    renderDefectGridBadges();
-    renderDiagnosticData(r, file.name);
-
-    // 바이트(교합) 스캔 자동 판별 (2026-09-30) — 체크박스로 사람이 표시하는
-    // 게 아니라, 업로드된 파일명 자체에서 자동 감지함. 실제 Dentlink
-    // 관리자페이지에서 확인한 실사례(UpperJawScan.stl/LowerJawScan.stl/
-    // BiteScan2.stl) 명명규칙 기준 — 파일명에 'bite'가 포함되면 바이트타입
-    // 스캔으로 간주. 교합면은 정의상 항상 가려져 있어(맞물린 상태로
-    // 찍으니까) 우리 구멍비율 지표로는 애초에 좋고나쁨을 가릴 수 없는
-    // 파일 유형이라, 점수와 무관하게 항상 육안확인 필수로 처리함.
-    lastFileIsBiteType = /bite/i.test(file.name);
-
-    statusEl.innerHTML = `<span class="status-check">\u2713</span> ${esc2(file.name)} — 삼각형 ${r.triangleCount.toLocaleString()}개, 점수 ${r.score} (${ms}ms)`
-      + (lastFileIsBiteType ? ` <span class="bite-auto-badge">바이트 스캔으로 자동 감지됨</span>` : '');
-  } catch (e) {
-    statusEl.textContent = `분석 실패: ${e.message}`;
-    lastScanAnalysis = null;
+  const skipped = [], queue = [];
+  for (const file of files) {
+    if (!/\.(stl|ply)$/i.test(file.name)) { skipped.push(`${file.name} (STL/PLY만 가능)`); continue; }
+    if (scanFiles.length >= MAX_SCAN_FILES) { skipped.push(`${file.name} (최대 ${MAX_SCAN_FILES}개)`); continue; }
+    if (scanFiles.some(f => f.name === file.name && f.size === file.size)) { skipped.push(`${file.name} (이미 추가됨)`); continue; }
+    const label = detectScanLabel(file.name);
+    // 바이트(교합) 스캔은 파일명 자동 감지 (2026-09-30) — 교합면은 정의상 가려져 있어 구멍비율로 좋고나쁨을 가릴 수 없는 파일 유형
+    const entry = {id: ++scanFileSeq, name: file.name, size: file.size, label, isBite: label === 'bite', status: 'analyzing', analysis: null, ms: 0, error: ''};
+    scanFiles.push(entry);
+    queue.push({entry, file});
   }
-  document.getElementById('dropZone').classList.remove('analyzing');
+  statusEl.textContent = skipped.length ? `제외된 파일: ${skipped.join(', ')}` : '';
+  renderFileList(); renderDefectGridBadges();
+  if (queue.length) document.getElementById('dropZone').classList.add('analyzing');
+  for (const {entry, file} of queue) {
+    await new Promise(r => setTimeout(r, 30));      // 화면이 '분석 중'을 먼저 그리도록 양보
+    if (!scanFiles.includes(entry)) continue;       // 분석 대기 중 빼버린 파일
+    try {
+      const buf = await file.arrayBuffer();
+      const t0 = performance.now();
+      entry.analysis = analyzeScanFile(buf);
+      entry.ms = Math.round(performance.now() - t0);
+      entry.status = 'ok';
+    } catch (e) {
+      entry.status = 'error'; entry.error = e.message;
+    }
+    renderFileList(); refreshScanSummary();
+  }
+  if (!scanFiles.some(f => f.status === 'analyzing')) document.getElementById('dropZone').classList.remove('analyzing');
 }
 
 
