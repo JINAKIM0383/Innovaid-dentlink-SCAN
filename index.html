@@ -1222,89 +1222,106 @@ const PLY_TYPE = {
   uchar:['getUint8',1], uint8:['getUint8',1], char:['getInt8',1], int8:['getInt8',1],
   ushort:['getUint16',2], uint16:['getUint16',2], short:['getInt16',2], int16:['getInt16',2],
   int:['getInt32',4], int32:['getInt32',4], uint:['getUint32',4], uint32:['getUint32',4],
+  uint64:['getBigUint64',8], int64:['getBigInt64',8],
 };
 
+// PLY 읽기 — 속성 순서·여러 개의 list 속성(예: 면마다 vertex_indices + texcoord)·big-endian·CRLF 헤더를 모두 처리한다.
+// 스캐너·프로그램마다 PLY 헤더 구성이 달라서, "점/면에 이런 속성이 있다"고 가정하지 않고 헤더 순서대로 읽는다.
 function parsePlyBinary(buf) {
   const bytes = new Uint8Array(buf);
   const decoder = new TextDecoder('ascii');
-  const marker = 'end_header\n';
-  // end_header 위치 찾기 (텍스트로 앞부분만 디코드)
-  const headSlice = decoder.decode(bytes.slice(0, Math.min(bytes.length, 20000)));
-  const markerIdx = headSlice.indexOf(marker);
-  if (markerIdx === -1) throw new Error('Invalid PLY: no end_header found');
-  const headerEnd = markerIdx + marker.length;
-  const headerText = headSlice.slice(0, headerEnd);
-  const lines = headerText.split('\n').map(l=>l.trim());
-  if (lines[0] !== 'ply') throw new Error("Invalid PLY: missing 'ply' magic");
-  const fmtLine = lines.find(l=>l.startsWith('format')) || '';
-  if (!fmtLine.includes('binary_little_endian')) throw new Error('Only binary_little_endian PLY supported');
+  const headSlice = decoder.decode(bytes.slice(0, Math.min(bytes.length, 65536)));
+  const m = /end_header\r?\n/.exec(headSlice);
+  if (!m) throw new Error('PLY 헤더(end_header)를 찾지 못했습니다');
+  const headerEnd = m.index + m[0].length;
+  const lines = headSlice.slice(0, headerEnd).split(/\r?\n/).map(l => l.trim());
+  if (lines[0] !== 'ply') throw new Error("PLY 파일이 아닙니다 ('ply' 표시 없음)");
+  const fmtLine = lines.find(l => l.startsWith('format')) || '';
+  if (!/binary_(little|big)_endian/.test(fmtLine)) throw new Error('ASCII 형식 PLY는 지원하지 않습니다 (binary PLY만 가능)');
+  const little = fmtLine.includes('little');
 
   const elements = [];
   let cur = null;
   for (const line of lines.slice(1)) {
-    if (line.startsWith('comment') || !line) continue;
+    if (line.startsWith('comment') || line.startsWith('obj_info') || !line) continue;
     if (line.startsWith('element')) {
-      const [,name,count] = line.split(/\s+/);
-      cur = {name, count:parseInt(count), properties:[], listProp:null};
+      const [, name, count] = line.split(/\s+/);
+      cur = {name, count: parseInt(count), props: []};
       elements.push(cur);
     } else if (line.startsWith('property') && cur) {
-      const parts = line.split(/\s+/);
-      if (parts[1] === 'list') {
-        cur.listProp = {countType:parts[2], itemType:parts[3], name:parts[4]};
-      } else {
-        cur.properties.push({name:parts[2], type:parts[1]});
-      }
+      const p = line.split(/\s+/);
+      if (p[1] === 'list') cur.props.push({name: p[4], list: true, countType: p[2], itemType: p[3]});
+      else cur.props.push({name: p[2], list: false, type: p[1]});
     } else if (line === 'end_header') break;
   }
+  const typ = t => { const r = PLY_TYPE[t]; if (!r) throw new Error('지원하지 않는 PLY 자료형: ' + t); return r; };
 
   const dv = new DataView(buf);
+  const total = buf.byteLength;
+  const truncated = () => new Error('PLY 파일이 중간에 끊긴 것 같습니다 (헤더에 적힌 크기보다 파일이 짧음). 스캔 프로그램에서 다시 내보내 주세요.');
+  const rd = (fn, o) => { const v = dv[fn](o, little); return typeof v === 'bigint' ? Number(v) : v; };
   let offset = headerEnd;
-  const vertexPositions = [];
+  let vertexPositions = [];
   const faces = [];
 
   for (const el of elements) {
-    if (!el.listProp) {
-      const fields = el.properties.map(p => PLY_TYPE[p.type]);
-      const size = fields.reduce((s,f)=>s+f[1], 0);
-      const names = el.properties.map(p=>p.name);
-      const isVertex = el.name === 'vertex' && ['x','y','z'].every(k=>names.includes(k));
+    const hasList = el.props.some(p => p.list);
+    const isVertex = el.name === 'vertex';
+    const isFace = el.name === 'face';
+    if (!hasList) {
+      // 고정 크기 행: 위치만 읽고 나머지(법선·색 등)는 건너뜀
+      const sizes = el.props.map(p => typ(p.type)[1]);
+      const rowSize = sizes.reduce((x, y) => x + y, 0);
+      if (offset + rowSize * el.count > total) throw truncated();
+      const offs = []; let acc = 0; sizes.forEach(z => { offs.push(acc); acc += z; });
+      const names = el.props.map(p => p.name);
       const xi = names.indexOf('x'), yi = names.indexOf('y'), zi = names.indexOf('z');
-      for (let i=0;i<el.count;i++){
-        if (isVertex) {
-          const vals = [];
-          let o = offset;
-          for (const [fn,fs] of fields) { vals.push(dv[fn](o, true)); o += fs; }
-          vertexPositions.push([vals[xi], vals[yi], vals[zi]]);
+      if (isVertex && xi >= 0 && yi >= 0 && zi >= 0) {
+        const fx = typ(el.props[xi].type)[0], fy = typ(el.props[yi].type)[0], fz = typ(el.props[zi].type)[0];
+        for (let i = 0; i < el.count; i++) {
+          const o = offset + i * rowSize;
+          vertexPositions.push([rd(fx, o + offs[xi]), rd(fy, o + offs[yi]), rd(fz, o + offs[zi])]);
         }
-        offset += size;
       }
+      offset += rowSize * el.count;
     } else {
-      const [countFn,countSize] = PLY_TYPE[el.listProp.countType];
-      const [itemFn,itemSize] = PLY_TYPE[el.listProp.itemType];
-      const fixedFields = el.properties.map(p => PLY_TYPE[p.type]);
-      const fixedSize = fixedFields.reduce((s,f)=>s+f[1], 0);
-      const isFace = el.name === 'face';
-      for (let i=0;i<el.count;i++){
-        offset += fixedSize; // object id 등 건너뜀
-        const n = dv[countFn](offset, true); offset += countSize;
-        const idxs = [];
-        for (let k=0;k<n;k++){ idxs.push(dv[itemFn](offset, true)); offset += itemSize; }
-        if (isFace) faces.push(idxs);
+      // list 속성이 있는 행: 속성을 헤더 순서대로 하나씩 읽는다
+      const idxProp = el.props.findIndex(p => p.list && (p.name === 'vertex_indices' || p.name === 'vertex_index'));
+      const useIdx = isFace ? (idxProp >= 0 ? idxProp : el.props.findIndex(p => p.list)) : -1;
+      for (let i = 0; i < el.count; i++) {
+        for (let pi = 0; pi < el.props.length; pi++) {
+          const p = el.props[pi];
+          if (!p.list) { const [, fs] = typ(p.type); if (offset + fs > total) throw truncated(); offset += fs; continue; }
+          const [cfn, cs] = typ(p.countType), [ifn, is] = typ(p.itemType);
+          if (offset + cs > total) throw truncated();
+          const n = rd(cfn, offset); offset += cs;
+          if (offset + n * is > total) throw truncated();
+          if (pi === useIdx) {
+            const idxs = new Array(n);
+            for (let k = 0; k < n; k++) { idxs[k] = rd(ifn, offset + k * is); }
+            faces.push(idxs);
+          }
+          offset += n * is;
+        }
       }
     }
   }
 
-  if (!vertexPositions.length) throw new Error('PLY has no vertex element');
-  if (!faces.length) throw new Error('PLY has no face element');
+  if (!vertexPositions.length) throw new Error('PLY에 점(vertex) 정보가 없습니다');
+  if (!faces.length) throw new Error('PLY에 면(face) 정보가 없습니다 — 점구름(point cloud)만 있는 파일은 분석할 수 없습니다. 메쉬로 내보내 주세요.');
 
+  const nV = vertexPositions.length;
   const triangles = [];
   for (const idxs of faces) {
     if (idxs.length < 3) continue;
     const v0 = vertexPositions[idxs[0]];
-    for (let k=1; k<idxs.length-1; k++) {
-      triangles.push([v0, vertexPositions[idxs[k]], vertexPositions[idxs[k+1]]]);
+    if (!v0) continue;
+    for (let k = 1; k < idxs.length - 1; k++) {
+      const v1 = vertexPositions[idxs[k]], v2 = vertexPositions[idxs[k + 1]];
+      if (v1 && v2) triangles.push([v0, v1, v2]);
     }
   }
+  if (!triangles.length) throw new Error('PLY의 면이 점 번호와 맞지 않아 분석할 삼각형이 없습니다');
   return triangles;
 }
 
