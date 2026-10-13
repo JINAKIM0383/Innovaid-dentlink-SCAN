@@ -541,6 +541,54 @@
     .xsec-grid, .finding-grid, .rule-item, .defect-card { break-inside: avoid; }
     .section-title { break-after: avoid; }
   }
+
+  /* ── 성과 지표 화면 ── */
+  .log-sub{ display:flex; gap:6px; margin:0 0 16px; border-bottom:1px solid var(--line); }
+  .log-sub button{ font-family:var(--sans); font-size:13px; font-weight:600; padding:9px 16px; border:none; background:none;
+    color:var(--ink-muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .log-sub button.on{ color:var(--blue-ink); border-bottom-color:var(--blue); }
+  .kpi-strip{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+  .kpi-strip > div{ border:1px solid var(--line); border-radius:8px; padding:11px 14px; background:var(--gray-bg); }
+  .kpi-strip .ks-k{ font-size:11px; color:var(--ink-muted); font-weight:600; }
+  .kpi-strip .ks-v{ font-size:18px; font-weight:700; margin-top:3px; color:var(--ink); }
+  .kpi-strip .ks-s{ font-size:11px; color:var(--ink-faint); margin-top:2px; }
+  .kpi-h{ font-size:13px; font-weight:700; margin:22px 0 4px; color:var(--ink); }
+  .kpi-sub{ font-size:12px; color:var(--ink-faint); line-height:1.7; margin:0 0 10px; word-break:keep-all; }
+  .kpi-table{ width:100%; border-collapse:collapse; font-size:12px; }
+  .kpi-table th{ text-align:left; padding:8px 10px; background:var(--ink); color:#fff; font-weight:600; font-size:11.5px; }
+  .kpi-table td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.55; }
+  .kpi-table .kt-name{ font-weight:700; }
+  .kpi-table .kt-def{ font-size:11px; color:var(--ink-faint); font-weight:400; }
+  .kpi-table .kt-val{ font-size:15px; font-weight:700; font-family:var(--mono); }
+  .kpi-table .kt-prov{ font-size:10.5px; color:var(--ink-faint); font-weight:500; font-family:var(--sans); }
+  .kpi-chip{ display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .kpi-chip.ok{ background:#E3F4EA; color:#1F7A4D; }
+  .kpi-chip.fail{ background:#FDE8E6; color:#B42318; }
+  .kpi-chip.nodata{ background:#FEF3E2; color:#B54708; }
+  .kpi-list{ list-style:none; margin:0; padding:0; }
+  .kpi-list li{ display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:12.5px; line-height:1.55; }
+  .kpi-list .kl-mark{ flex:0 0 18px; font-weight:700; }
+  .kpi-list .kl-done .kl-mark{ color:#1F7A4D; }
+  .kpi-list .kl-todo .kl-mark{ color:#B54708; }
+  .kpi-list .kl-det{ color:var(--ink-faint); font-size:11.5px; }
+  .kpi-bar{ height:7px; background:var(--line); border-radius:99px; overflow:hidden; margin-top:6px; }
+  .kpi-bar > i{ display:block; height:100%; background:var(--blue); }
+  .kpi-form{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px 14px; align-items:end; margin-bottom:8px; }
+  .kpi-form label{ display:block; font-size:11.5px; color:var(--ink-muted); font-weight:600; margin-bottom:4px; }
+  .kpi-btn{ font-family:var(--sans); font-size:12.5px; font-weight:600; padding:8px 16px; border:1px solid var(--blue); border-radius:6px;
+    background:var(--blue); color:#fff; cursor:pointer; }
+  .kpi-btn.ghost{ background:#fff; color:var(--blue-ink); }
+  .kpi-ev{ display:flex; gap:10px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .kpi-ev .ke-s{ font-family:var(--mono); font-weight:700; width:34px; }
+  .kpi-ev .ke-d{ flex:1; }
+  .kpi-ev button{ border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:12px; }
+  .kpi-note{ font-size:11.5px; color:var(--ink-muted); background:var(--gray-bg); border-radius:8px; padding:10px 14px; line-height:1.75; margin-top:14px; word-break:keep-all; }
+  @media (max-width:900px){ .kpi-strip{ grid-template-columns:repeat(2,1fr); } }
+  @media print {
+    .log-sub, .kpi-input-area { display:none !important; }
+    #logPanel { display:block !important; box-shadow:none !important; border:none !important; padding:0 !important; }
+    .kpi-table, .kpi-strip, .kpi-list li { break-inside:avoid; }
+  }
 </style>
 </head>
 <body>
@@ -855,14 +903,19 @@
       <div class="page">
       <div class="ph">
         <div class="ph-eyebrow">판단 이력</div>
-        <div class="ph-title">판단 로그</div>
+        <div class="ph-title">판단 로그 · 성과 지표</div>
         <div class="ph-sub">
-        지금까지 실행된 모든 판단의 전체 이력이며 서버에 자동 저장됩니다. 운영현황 대시보드는 최근 10건만
-        보여주지만, 여기서는 전체를 보고 CSV로 내보낼 수 있습니다.
-        "전체 백업"으로 판단이력·규칙 가중치를 저장하고, "복원"으로 다시 불러올 수 있습니다.
+        [성과 지표]는 쌓인 판단 이력으로 사업계획서의 5개 성과지표를 자동 계산합니다(산출물③ 성과 비교 보고서의 뼈대).
+        [판단 이력]은 지금까지 실행된 모든 판단의 전체 목록이며 서버에 자동 저장됩니다.
+        "전체 백업"으로 판단이력·규칙 가중치·성과지표 입력값을 저장하고, "복원"으로 다시 불러올 수 있습니다.
         </div>
       </div>
-      <div id="logArea"></div>
+      <div class="log-sub no-print">
+        <button id="logSubKpi" class="on" onclick="setLogSub('kpi')">성과 지표</button>
+        <button id="logSubLog" onclick="setLogSub('log')">판단 이력</button>
+      </div>
+      <div id="kpiArea"></div>
+      <div id="logArea" style="display:none"></div>
       </div>
     </div>
 
@@ -1042,9 +1095,12 @@ async function cloudPull(since) {
   return changed;
 }
 async function cloudPullSettings() {
-  const r = await cloudFetch('settings?select=key,value&key=eq.rx_weights');
+  const r = await cloudFetch('settings?select=key,value');
   const rows = await r.json();
-  if (rows.length && rows[0].value && typeof rows[0].value === 'object') rxWeightOverrides = rows[0].value;
+  rows.forEach(row => {
+    if (row.key === 'rx_weights' && row.value && typeof row.value === 'object') rxWeightOverrides = row.value;
+    Object.keys(KPI_KEYS).forEach(n => { if (row.key === KPI_KEYS[n] && row.value != null) kpiCfg[n] = row.value; });
+  });
 }
 function cloudRefreshActiveTab() {
   const on = id => { const el = document.getElementById(id); return el && el.classList.contains('active'); };
@@ -2391,7 +2447,7 @@ function addOrderToWorkflow(rxD, rxResult, branchInfo, orderNum, extra) {
   if (existing) {
     // 같은 Order Num 재입력 = 재판단(재스캔 파일 확인 등). 이전 판정은 pastJudgments에 보관하고 현재 값을 갱신.
     existing.pastJudgments = existing.pastJudgments || [];
-    existing.pastJudgments.push({at: existing.lastJudgedAt || existing.createdAt, rxVerdict: existing.rxVerdict, rxScore: existing.rxScore, finalDecision: existing.finalDecision || null});
+    existing.pastJudgments.push({at: existing.lastJudgedAt || existing.createdAt, rxVerdict: existing.rxVerdict, rxScore: existing.rxScore, finalDecision: existing.finalDecision || null, handlingSec: existing.handlingSec ?? null, engineMs: existing.engineMs ?? null});
     existing.history.push({state: existing.state, at: now, note: `\uC7AC\uD310\uB2E8 \u2014 ${existing.rxVerdict} \u2192 ${rxResult.verdict}`});
     Object.assign(existing, {
       cat: rxD.cat, days: rxD.days, remakeCount: parseInt(rxD.remake) || 0,
@@ -2701,6 +2757,7 @@ function removeScanFile(id) {
 
 // 입력 초기화 — 새로고침(F5)과 같이 이번 입력을 한 번에 비운다. 이미 등록된 주문·판단 기록은 그대로 둔다.
 function resetRxInput() {
+  inputStartedAt = null;
   const $ = id => document.getElementById(id);
   $('fileInput').value = '';
   scanFiles = [];
@@ -2931,7 +2988,13 @@ function switchTab(name) {
 
 const VERDICT_RANK = {PROCEED:0, REVIEW:1, RESCAN:2};
 
+// 판단 소요시간 측정: 입력 화면에서 첫 입력(붙여넣기·파일 올리기·타이핑) 시점 → "판단 실행" 클릭까지.
+let inputStartedAt = null;
+['input','change','drop','paste'].forEach(ev => document.getElementById('inputPanel').addEventListener(ev, () => {
+  if (!inputStartedAt) inputStartedAt = Date.now();
+}, true));
 function runEngine() {
+  const _engT0 = performance.now();
   const ptype = document.getElementById('prosthesisType').value;
   const material = document.getElementById('material').value;
   const tctx = getToothContext();             // FDI/UNS 자동 판별 + FDI 환산
@@ -3015,6 +3078,9 @@ function runEngine() {
     teeth: toothNumbers.join(','),
     units: parseInt(rxD.units),
     engineReason: rxResult.biteForced ? 'bite' : rxResult.holeSizeForced ? 'hole' : rxResult.noScanForced ? 'noscan' : null,
+    // 성과지표용 시간 기록: 입력 시작→판단 실행(초), 엔진 처리(스캔 분석+규칙 판단, ms)
+    handlingSec: inputStartedAt ? Math.round((Date.now() - inputStartedAt) / 100) / 10 : null,
+    engineMs: Math.round(performance.now() - _engT0 + scanFiles.reduce((a, f) => a + (f.ms || 0), 0)),
     // 파일별 판단 요약 (원본 스캔은 저장하지 않고 이름·구분·점수·판정만 기록)
     scanFiles: judgments.filter(j => j.entry).map(j => ({
       name: j.entry.name, label: j.entry.label,
@@ -3023,6 +3089,7 @@ function runEngine() {
     })),
   };
   const newOrder = addOrderToWorkflow(rxD, rxResult, branchInfo, orderNumEarly, extra);
+  inputStartedAt = null;
   updateTopbarStats();
 
   const result = evaluateOrder(order);
@@ -3127,6 +3194,19 @@ function resetRuleWeights() {
 
 function renderJudgmentLog() {
   updateTopbarStats();
+  document.getElementById('kpiArea').style.display = logSub === 'kpi' ? '' : 'none';
+  document.getElementById('logArea').style.display = logSub === 'log' ? '' : 'none';
+  document.getElementById('logSubKpi').classList.toggle('on', logSub === 'kpi');
+  document.getElementById('logSubLog').classList.toggle('on', logSub === 'log');
+  if (logSub === 'kpi') renderKpi(); else renderLogTable();
+}
+function setLogSub(name) { logSub = name; renderJudgmentLog(); }
+function toggleKpiExclude(id, on) {
+  const o = WF.orders.find(x => x.id === id); if (!o) return;
+  if (on) o.kpiExclude = true; else delete o.kpiExclude;
+  saveWF(); renderLogTable();
+}
+function renderLogTable() {
   const area = document.getElementById('logArea');
   if (!WF.orders.length) {
     area.innerHTML = '<div class="empty-state"><svg class="empty-state-icon" viewBox="0 0 24 24" fill="none"><path d="M5 3h14v18H5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>아직 판단 이력이 없습니다. "판단 실행"을 하면 여기 전체 로그가 쌓입니다.</div>';
@@ -3138,7 +3218,7 @@ function renderJudgmentLog() {
       <thead>
         <tr>
           <th></th><th>일시</th><th>주문번호</th><th>카테고리</th><th>RxEngine</th><th>리스크점수</th>
-          <th>분기결과</th><th>워크플로우</th><th>재제작</th><th>납기</th><th>기공사 판단</th>
+          <th>분기결과</th><th>워크플로우</th><th>재제작</th><th>납기</th><th>기공사 판단</th><th title="시험 입력이면 체크 — 성과지표 계산에서 빠집니다">지표 제외</th>
         </tr>
       </thead>
       <tbody>
@@ -3157,10 +3237,11 @@ function renderJudgmentLog() {
             <td class="lg-mono">${o.remakeCount}</td>
             <td class="lg-mono">${o.days !== '' && o.days != null ? esc2(o.days)+'\uC77C' : '-'}</td>
             <td>${o.finalDecision ? `${DECISION_LABEL[o.finalDecision.decision]} <span class="lg-hist-cnt">${AGREE_SHORT[o.finalDecision.agreement]}</span>` : '-'}</td>
+            <td onclick="event.stopPropagation()"><input type="checkbox" ${o.kpiExclude ? 'checked' : ''} data-id="${esc2(o.id)}" onchange="toggleKpiExclude(this.dataset.id, this.checked)"></td>
           </tr>
           ${hasHistory ? `
           <tr class="lg-history-row" id="lgHistory_${idx}" style="display:none;">
-            <td colspan="11">
+            <td colspan="12">
               <div class="log-history-panel">
                 ${o.history.map((h,i) => `
                   <div class="log-history-item">
@@ -3175,6 +3256,255 @@ function renderJudgmentLog() {
         }).join('')}
       </tbody>
     </table>`;
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// 성과 지표 (산출물③ 성과 비교 보고서의 뼈대)
+// 사업계획서 5대 KPI를 쌓인 판단 이력에서 자동 계산한다.
+//   자동 처리 비율 ≥75% / 재제작 발생률 <2% / 평균 판단 처리 시간 <30초 /
+//   예외 케이스 비율 <5% / 전문가 평가 만족도 ≥4.0
+// 값이 충분히 쌓이기 전에는 "달성/미달"을 확정하지 않고 "데이터 부족"으로 둔다.
+// ════════════════════════════════════════════════════════════════
+const KPI_TARGET = {auto: 75, remake: 2, timeSec: 30, exception: 5, sat: 4.0};
+const KPI_MIN_N = 30;        // 비율 지표를 확정하기 위한 최소 건수
+const KPI_MIN_EVALS = 3;     // 전문가 평가 최소 인원
+const KPI_IDLE_SEC = 1800;   // 이보다 길면 자리를 비운 것으로 보고 시간 평균에서 제외
+const KPI_KEYS = {baseline: 'kpi_baseline', evals: 'expert_evals', pilot: 'kpi_pilot'};
+let logSub = 'kpi';
+let kpiCfg = {baseline: null, evals: [], pilot: null};
+function kpiLoadLocal() {
+  Object.keys(KPI_KEYS).forEach(n => {
+    try { const raw = localStorage.getItem('dentlink_' + KPI_KEYS[n]); if (raw) kpiCfg[n] = JSON.parse(raw); } catch (e) {}
+  });
+  if (!Array.isArray(kpiCfg.evals)) kpiCfg.evals = [];
+}
+function kpiSave(name) {
+  if (CLOUD_ON) { cloudSaveSettings(KPI_KEYS[name], kpiCfg[name]); return; }
+  try { localStorage.setItem('dentlink_' + KPI_KEYS[name], JSON.stringify(kpiCfg[name])); } catch (e) {}
+}
+if (!CLOUD_ON) kpiLoadLocal();
+
+function kpiMedian(a) {
+  if (!a.length) return null;
+  const b = [...a].sort((x, y) => x - y), m = b.length >> 1;
+  return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2;
+}
+function kpiFmtPct(v) { return v == null ? '—' : (Math.round(v * 10) / 10) + '%'; }
+function kpiFmtSec(s) {
+  if (s == null) return '—';
+  if (s < 60) return (Math.round(s * 10) / 10) + '초';
+  const m = Math.floor(s / 60); return m + '분 ' + Math.round(s - m * 60) + '초';
+}
+
+// 순수 계산 함수 — orders와 입력값(cfg)만으로 5개 지표를 계산한다.
+function computeKpis(orders, cfg, now) {
+  now = now || new Date();
+  const pilotStart = cfg.pilot && cfg.pilot.start ? new Date(cfg.pilot.start + 'T00:00:00') : null;
+  const excluded = orders.filter(o => o.kpiExclude).length;
+  let list = orders.filter(o => !o.kpiExclude);
+  if (pilotStart) list = list.filter(o => new Date(o.createdAt) >= pilotStart);
+  const n = list.length;
+  const hist = o => o.history || [];
+  const autoN = list.filter(o => o.branchResult === 'AUTO').length;
+  const excN = list.filter(o => hist(o).some(h => h.state === 'EXCEPTION')).length;
+  const remN = list.filter(o => (o.remakeCount || 0) > 0 || hist(o).some(h => h.note && h.note.includes('리메이크'))).length;
+  const timedAll = list.filter(o => typeof o.handlingSec === 'number');
+  const timed = timedAll.filter(o => o.handlingSec <= KPI_IDLE_SEC).map(o => o.handlingSec);
+  const idleN = timedAll.length - timed.length;
+  const avgSec = timed.length ? timed.reduce((a, b) => a + b, 0) / timed.length : null;
+  const medSec = kpiMedian(timed);
+  const engArr = list.filter(o => typeof o.engineMs === 'number').map(o => o.engineMs);
+  const engAvgMs = engArr.length ? engArr.reduce((a, b) => a + b, 0) / engArr.length : null;
+  const evals = (cfg.evals || []).filter(e => typeof e.score === 'number');
+  const satAvg = evals.length ? evals.reduce((a, e) => a + e.score, 0) / evals.length : null;
+  const bl = cfg.baseline || {};
+
+  const autoV = n ? autoN / n * 100 : null;
+  const remV = n ? remN / n * 100 : null;
+  const excV = n ? excN / n * 100 : null;
+  const st = (enough, ok) => !enough ? 'nodata' : ok ? 'ok' : 'fail';
+  const enoughN = n >= KPI_MIN_N, enoughT = timed.length >= KPI_MIN_N, enoughE = evals.length >= KPI_MIN_EVALS;
+
+  const blMin = typeof bl.handlingMin === 'number' ? bl.handlingMin : null;
+  const blRem = typeof bl.remakeRate === 'number' ? bl.remakeRate : null;
+  const rows = [
+    {key: 'auto', name: '자동 처리 비율', def: '전체 판단 건 중 워크플로우 분기가 AUTO(사람 개입 없이 진행)인 비율',
+     value: autoV, valueText: kpiFmtPct(autoV), count: `${autoN}/${n}건`, target: '≥ 75%', before: '0% (전량 수동)',
+     change: autoV != null ? '+' + Math.round(autoV * 10) / 10 + '%p' : '—', status: st(enoughN, autoV != null && autoV >= KPI_TARGET.auto)},
+    {key: 'remake', name: '재제작 발생률', def: '전체 건 중 재제작(리메이크)이 있었던 건의 비율',
+     value: remV, valueText: kpiFmtPct(remV), count: `${remN}/${n}건`, target: '< 2%',
+     before: blRem != null ? kpiFmtPct(blRem) + (bl.basis ? ' (' + bl.basis + ')' : '') : '미입력 — 아래에서 입력',
+     change: (blRem != null && remV != null) ? (remV - blRem >= 0 ? '+' : '') + Math.round((remV - blRem) * 10) / 10 + '%p' : '—',
+     status: st(enoughN, remV != null && remV < KPI_TARGET.remake)},
+    {key: 'time', name: '평균 판단 처리 시간', def: 'Rx 입력을 시작한 시점부터 판단이 나올 때까지의 시간(30분 넘는 건은 자리 비움으로 보고 제외)',
+     value: avgSec, valueText: kpiFmtSec(avgSec), count: `${timed.length}건` + (medSec != null ? ` · 중앙값 ${kpiFmtSec(medSec)}` : '') + (idleN ? ` · 제외 ${idleN}건` : ''),
+     target: '< 30초',
+     before: blMin != null ? (blMin >= 60 ? Math.round(blMin / 6) / 10 + '시간' : blMin + '분') + ' (수동)' : '약 4시간 (계획서 가정값 — 실측 입력 필요)',
+     change: avgSec != null ? '−' + Math.round((1 - avgSec / ((blMin != null ? blMin : 240) * 60)) * 1000) / 10 + '%' : '—',
+     status: st(enoughT, avgSec != null && avgSec < KPI_TARGET.timeSec)},
+    {key: 'exception', name: '예외 케이스 비율', def: '전체 건 중 예외 처리 상태로 들어간 건의 비율(사람 개입이 필요했던 건)',
+     value: excV, valueText: kpiFmtPct(excV), count: `${excN}/${n}건`, target: '< 5%', before: '측정 없음',
+     change: '—', status: st(enoughN, excV != null && excV < KPI_TARGET.exception)},
+    {key: 'sat', name: '전문가 평가 만족도', def: '도메인 전문가(기공사 등)가 매긴 만족도 점수의 평균(5점 만점)',
+     value: satAvg, valueText: satAvg == null ? '—' : (Math.round(satAvg * 100) / 100).toFixed(2) + ' / 5', count: `${evals.length}명`,
+     target: '≥ 4.0 / 5.0', before: '기준 없음', change: '—', status: st(enoughE, satAvg != null && satAvg >= KPI_TARGET.sat)},
+  ];
+
+  // 신뢰성 보조 지표: 엔진 판정 vs 기공사 최종 판단
+  const decided = list.filter(o => o.finalDecision);
+  const cnt = k => decided.filter(o => o.finalDecision.agreement === k).length;
+  const agree = cnt('agree'), miss = cnt('miss'), fa = cnt('falsealarm'), rv = cnt('review');
+  const judged = agree + miss + fa;
+  const branchDist = {};
+  list.forEach(o => { branchDist[o.branchResult] = (branchDist[o.branchResult] || 0) + 1; });
+
+  // 파일럿 기간
+  let pilot = null;
+  if (pilotStart) {
+    const end = new Date(pilotStart); end.setMonth(end.getMonth() + 3);
+    const total = (end - pilotStart) / 86400000, el = Math.max(0, Math.min(total, (now - pilotStart) / 86400000));
+    pilot = {start: cfg.pilot.start, end: end.toISOString().slice(0, 10), pct: Math.round(el / total * 100), days: Math.floor(el), total: Math.round(total)};
+  }
+  const tempN = list.filter(o => /^T\d{6}-/.test(String(o.id))).length;
+
+  const missing = [
+    {done: !!pilotStart, text: '파일럿 시작일 설정', det: pilotStart ? cfg.pilot.start : '아래 "데이터 입력"에서 날짜를 정하면 그 날짜 이후 건만 집계합니다.'},
+    {done: enoughN, text: `판단 건수 ${n}/${KPI_MIN_N}건`, det: enoughN ? '' : `비율 지표(자동처리·재제작·예외)를 확정하려면 ${KPI_MIN_N - n}건 더 필요`},
+    {done: enoughT, text: `판단 시간이 기록된 건 ${timed.length}/${KPI_MIN_N}건`, det: enoughT ? '' : (n && !timedAll.length ? '이 기능 적용 이전에 입력한 건은 시간이 없습니다. 새로 입력하는 건부터 자동 기록됩니다.' : `${KPI_MIN_N - timed.length}건 더 필요`)},
+    {done: n > 0 && decided.length / n >= 0.8, text: `기공사 최종 판단 기록 ${decided.length}/${n}건`, det: '엔진을 믿고 자동 처리해도 되는지 보여주는 근거입니다. 판단 결과 화면에서 "기공사 최종 판단"을 눌러 남기세요(80% 이상 권장).'},
+    {done: blMin != null, text: '[Before] 수동 판단 평균 소요시간 입력', det: blMin != null ? '' : '지금은 계획서의 가정값(약 4시간)으로 비교합니다. 실제 값을 1~2주 재서 입력하면 근거가 됩니다.'},
+    {done: blRem != null, text: '[Before] 도입 전 재제작률 입력', det: blRem != null ? '' : '과거 3개월 주문 대비 재제작 건수로 계산해 입력하세요.'},
+    {done: enoughE, text: `전문가 평가 ${evals.length}/${KPI_MIN_EVALS}명`, det: enoughE ? '' : '11월 전문가 검증에서 받은 점수를 아래에 입력하세요.'},
+    {done: tempN === 0, text: `임시번호(T…) 주문 ${tempN}건`, det: tempN === 0 ? '' : 'Order Num 없이 입력된 건입니다. 시험 입력이면 [판단 이력]에서 "지표 제외"를 체크하세요.'},
+  ];
+  return {n, excluded, rows, support: {decided: decided.length, agree, miss, fa, rv, judged, agreeRate: judged ? agree / judged * 100 : null},
+          branchDist, pilot, missing, engAvgMs, tempN,
+          achieved: rows.filter(r => r.status === 'ok').length, confirmed: rows.filter(r => r.status !== 'nodata').length};
+}
+
+const KPI_BRANCH_LABEL = {AUTO: '자동', REVIEW_NEEDED: '검토필요', EXCEPTION: '예외', URGENT: '긴급', FLAG: '플래그'};
+function renderKpi() {
+  const K = computeKpis(WF.orders, kpiCfg);
+  const area = document.getElementById('kpiArea');
+  const chip = s => `<span class="kpi-chip ${s}">${s === 'ok' ? '달성' : s === 'fail' ? '미달' : '데이터 부족'}</span>`;
+  const bl = kpiCfg.baseline || {};
+  const todo = K.missing.filter(m => !m.done).length;
+  const p = K.pilot;
+  area.innerHTML = `
+    <div class="kpi-strip">
+      <div><div class="ks-k">집계 대상</div><div class="ks-v">${K.n}건</div><div class="ks-s">${K.excluded ? `지표 제외 ${K.excluded}건 빠짐` : '전체 판단 이력'}</div></div>
+      <div><div class="ks-k">달성 / 확정 가능</div><div class="ks-v">${K.achieved} / ${K.confirmed}</div><div class="ks-s">5개 지표 중 (나머지는 데이터 부족)</div></div>
+      <div><div class="ks-k">엔진-기공사 일치율</div><div class="ks-v">${kpiFmtPct(K.support.agreeRate)}</div><div class="ks-s">${K.support.judged ? `${K.support.agree}/${K.support.judged}건 일치` : '기공사 판단 기록 없음'}</div></div>
+      <div><div class="ks-k">파일럿 기간</div><div class="ks-v">${p ? p.pct + '%' : '미설정'}</div><div class="ks-s">${p ? `${p.start} ~ ${p.end} (${p.days}/${p.total}일)` : '시작일을 정하면 진행률이 표시됩니다'}</div>${p ? `<div class="kpi-bar"><i style="width:${p.pct}%"></i></div>` : ''}</div>
+    </div>
+
+    <div class="kpi-h">성과 비교 (Before → After)</div>
+    <div class="kpi-sub">사업계획서 5대 성과지표입니다. 건수가 모자라면 값은 "잠정"으로만 보여주고 달성/미달을 확정하지 않습니다.</div>
+    <table class="kpi-table">
+      <thead><tr><th style="width:23%">지표 (측정 정의)</th><th>Before</th><th>현재(After)</th><th>변화</th><th>목표</th><th>상태</th></tr></thead>
+      <tbody>${K.rows.map(r => `
+        <tr>
+          <td><div class="kt-name">${r.name}</div><div class="kt-def">${r.def}</div></td>
+          <td>${esc2(r.before)}</td>
+          <td><div class="kt-val">${r.valueText}${r.status === 'nodata' && r.value != null ? ' <span class="kt-prov">잠정</span>' : ''}</div><div class="kt-def">${r.count}</div></td>
+          <td>${r.change}</td>
+          <td>${r.target}</td>
+          <td>${chip(r.status)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="kpi-h">신뢰성 보조 지표</div>
+    <div class="kpi-sub">자동 처리 비율이 높아도 엔진이 틀렸다면 의미가 없으므로, 기공사의 최종 판단과 비교한 결과를 함께 봅니다.</div>
+    <table class="kpi-table">
+      <tbody>
+        <tr><td class="kt-name" style="width:23%">엔진 vs 기공사</td><td>일치 <b>${K.support.agree}</b> · 미탐(엔진 통과, 기공사 차단) <b>${K.support.miss}</b> · 오탐(엔진 차단, 기공사 진행) <b>${K.support.fa}</b> · 검토건 <b>${K.support.rv}</b> (기공사 판단 기록 ${K.support.decided}건)</td></tr>
+        <tr><td class="kt-name">분기 결과 분포</td><td>${Object.keys(K.branchDist).length ? Object.entries(K.branchDist).map(([k, v]) => `${KPI_BRANCH_LABEL[k] || k} ${v}건`).join(' · ') : '—'}</td></tr>
+        <tr><td class="kt-name">엔진 자체 처리 시간</td><td>${K.engAvgMs != null ? Math.round(K.engAvgMs) + 'ms (스캔 분석 + 규칙 판단 평균)' : '—'}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="kpi-h">부족한 데이터 항목 <span style="font-weight:500;color:var(--ink-faint)">(${todo ? todo + '개 남음' : '모두 충족'})</span></div>
+    <ul class="kpi-list">${K.missing.map(m => `
+      <li class="${m.done ? 'kl-done' : 'kl-todo'}"><span class="kl-mark">${m.done ? '✓' : '○'}</span><span><b>${esc2(m.text)}</b>${m.det ? `<div class="kl-det">${esc2(m.det)}</div>` : ''}</span></li>`).join('')}
+    </ul>
+
+    <div class="kpi-note">
+      <b>읽는 법</b> · 자동 처리는 분기가 AUTO인 건만 셉니다(검토필요·긴급·플래그는 자동 처리가 아님). 판단 시간은 Rx 입력을 시작한 순간부터 "판단 실행"을 누를 때까지이므로 붙여넣기 기능으로 입력 시간이 줄수록 짧아집니다.
+      재제작률 2% 미만은 표본이 작을 때 "0건"이어야 달성이라는 뜻이라, 건수가 쌓인 뒤 보는 것이 의미 있습니다. 만족도는 평가자 ${KPI_MIN_EVALS}명 이상일 때만 확정합니다.
+    </div>
+
+    <div class="kpi-input-area">
+      <div class="kpi-h">데이터 입력</div>
+      <div class="kpi-sub">저장하면 같은 계정을 쓰는 모든 PC에 공유됩니다.</div>
+
+      <div class="kpi-form">
+        <div><label>파일럿 시작일</label><input type="date" id="kpiPilotStart" value="${esc2((kpiCfg.pilot && kpiCfg.pilot.start) || '')}"></div>
+        <div><button class="kpi-btn" onclick="kpiSavePilot()">시작일 저장</button></div>
+      </div>
+
+      <div class="kpi-h" style="margin-top:16px;font-size:12.5px">Before 기준값 (도입 전 수동 운영 실측)</div>
+      <div class="kpi-form">
+        <div><label>수동 판단 평균 소요(분)</label><input type="number" id="kpiBaseMin" min="0" step="1" placeholder="예: 240" value="${bl.handlingMin ?? ''}"></div>
+        <div><label>도입 전 재제작률(%)</label><input type="number" id="kpiBaseRem" min="0" max="100" step="0.1" placeholder="예: 6.5" value="${bl.remakeRate ?? ''}"></div>
+        <div><label>측정 근거 (기간·건수)</label><input type="text" id="kpiBaseBasis" placeholder="예: 2026.6~8, 120건" value="${esc2(bl.basis || '')}"></div>
+        <div><button class="kpi-btn" onclick="kpiSaveBaseline()">기준값 저장</button></div>
+      </div>
+
+      <div class="kpi-h" style="margin-top:16px;font-size:12.5px">전문가 평가 입력</div>
+      <div class="kpi-form">
+        <div><label>평가자 (이름 또는 소속)</label><input type="text" id="kpiEvName" placeholder="예: ○○기공소 팀장"></div>
+        <div><label>만족도 (1~5점)</label><input type="number" id="kpiEvScore" min="1" max="5" step="0.1" placeholder="예: 4.2"></div>
+        <div><label>의견 (선택)</label><input type="text" id="kpiEvNote" placeholder="한 줄 의견"></div>
+        <div><button class="kpi-btn" onclick="kpiAddEval()">평가 추가</button></div>
+      </div>
+      <div>${(kpiCfg.evals || []).map(e => `
+        <div class="kpi-ev"><span class="ke-s">${e.score}</span><span class="ke-d">${esc2(e.name || '(이름 없음)')}${e.note ? ' — ' + esc2(e.note) : ''} <span style="color:var(--ink-faint)">${esc2((e.at || '').slice(0, 10))}</span></span>
+        <button data-id="${esc2(e.id)}" onclick="kpiDelEval(this.dataset.id)">삭제</button></div>`).join('') || '<div class="kpi-sub">아직 입력된 평가가 없습니다.</div>'}</div>
+
+      <div style="margin-top:18px;display:flex;gap:8px">
+        <button class="kpi-btn ghost" onclick="exportKpiCsv()">성과지표 CSV</button>
+        <button class="kpi-btn ghost" onclick="window.print()">보고서 PDF로 인쇄</button>
+      </div>
+    </div>`;
+}
+function kpiSavePilot() {
+  const v = document.getElementById('kpiPilotStart').value;
+  kpiCfg.pilot = v ? {start: v} : null; kpiSave('pilot'); renderKpi();
+}
+function kpiSaveBaseline() {
+  const num = id => { const t = document.getElementById(id).value.trim(); const v = parseFloat(t); return t !== '' && isFinite(v) && v >= 0 ? v : null; };
+  kpiCfg.baseline = {handlingMin: num('kpiBaseMin'), remakeRate: num('kpiBaseRem'), basis: document.getElementById('kpiBaseBasis').value.trim()};
+  kpiSave('baseline'); renderKpi();
+}
+async function kpiAddEval() {
+  const score = parseFloat(document.getElementById('kpiEvScore').value);
+  if (!(score >= 1 && score <= 5)) { alert('만족도는 1~5 사이 숫자로 입력해주세요.'); return; }
+  if (CLOUD_ON) { try { await cloudPullSettings(); } catch (e) {} }   // 다른 PC에서 방금 넣은 평가를 덮어쓰지 않도록 먼저 최신본을 받는다
+  if (!Array.isArray(kpiCfg.evals)) kpiCfg.evals = [];
+  kpiCfg.evals.push({id: 'E' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), score: Math.round(score * 10) / 10,
+    name: document.getElementById('kpiEvName').value.trim(), note: document.getElementById('kpiEvNote').value.trim(), at: new Date().toISOString()});
+  kpiSave('evals'); renderKpi();
+}
+async function kpiDelEval(id) {
+  if (!confirm('이 평가를 삭제할까요?')) return;
+  if (CLOUD_ON) { try { await cloudPullSettings(); } catch (e) {} }
+  kpiCfg.evals = (kpiCfg.evals || []).filter(e => e.id !== id);
+  kpiSave('evals'); renderKpi();
+}
+function exportKpiCsv() {
+  const K = computeKpis(WF.orders, kpiCfg);
+  const lines = [['지표','측정 정의','Before','현재(After)','표본','변화','목표','상태']];
+  K.rows.forEach(r => lines.push([r.name, r.def, r.before, r.valueText, r.count, r.change, r.target, r.status === 'ok' ? '달성' : r.status === 'fail' ? '미달' : '데이터 부족']));
+  lines.push([]); lines.push(['부족한 데이터 항목', '충족', '상세']);
+  K.missing.forEach(m => lines.push([m.text, m.done ? 'Y' : 'N', m.det]));
+  lines.push([]); lines.push(['엔진-기공사 일치', K.support.agree, '미탐', K.support.miss, '오탐', K.support.fa, '검토', K.support.rv]);
+  const csv = '﻿' + lines.map(r => r.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8;'}));
+  a.download = `dentlink_성과지표_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
 }
 
 function toggleLogHistory(idx) {
@@ -3198,6 +3528,7 @@ function exportSessionBackup() {
     version: 'dentlink_engine_app v2.3.2',
     orders: WF.orders,
     ruleWeightOverrides: rxWeightOverrides,
+    kpi: kpiCfg,
   };
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], {type:'application/json'});
@@ -3230,6 +3561,9 @@ function importSessionBackup(file) {
         rxWeightOverrides = data.ruleWeightOverrides;
         saveRxWeightOverrides(rxWeightOverrides);
       }
+      if (data.kpi && typeof data.kpi === 'object') {
+        Object.keys(KPI_KEYS).forEach(n => { if (data.kpi[n] != null) { kpiCfg[n] = data.kpi[n]; kpiSave(n); } });
+      }
       saveWF();
       updateTopbarStats();
       renderJudgmentLog();
@@ -3244,7 +3578,7 @@ function importSessionBackup(file) {
 
 function exportLogCsv() {
   if (!WF.orders.length) { alert('\uB0B4\uBCF4\uB0BC \uD310\uB2E8 \uC774\uB825\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'); return; }
-  const headers = ['\uC0DD\uC131\uC77C\uC2DC','\uC8FC\uBB38\uBC88\uD638','\uCE74\uD14C\uACE0\uB9AC','RxEngine\uD310\uC815','\uB9AC\uC2A4\uD06C\uC810\uC218','\uBD84\uAE30\uACB0\uACFC','\uC6CC\uD06C\uD50C\uB85C\uC6B0\uC0C1\uD0DC','\uC7AC\uC81C\uC791\uD69F\uC218','\uB0A9\uAE30(\uC77C)','\uAE30\uACF5\uC0AC\uD310\uB2E8','\uC5D4\uC9C4\uB300\uBE44','\uD310\uB2E8\uBA54\uBAA8','\uC8FC\uBB38\uC811\uC218\uC77C','\uD76C\uB9DD\uBC30\uC1A1\uC77C','\uC608\uC0C1\uCD9C\uACE0\uC77C','\uCE74\uD14C\uACE0\uB9AC\uBA85','\uC0C1\uD488\uBA85/\uC635\uC158','\uCE58\uC544\uBC88\uD638(FDI)','\uC720\uB2DB\uC218','\uC7AC\uD310\uB2E8\uD69F\uC218'];
+  const headers = ['\uC0DD\uC131\uC77C\uC2DC','\uC8FC\uBB38\uBC88\uD638','\uCE74\uD14C\uACE0\uB9AC','RxEngine\uD310\uC815','\uB9AC\uC2A4\uD06C\uC810\uC218','\uBD84\uAE30\uACB0\uACFC','\uC6CC\uD06C\uD50C\uB85C\uC6B0\uC0C1\uD0DC','\uC7AC\uC81C\uC791\uD69F\uC218','\uB0A9\uAE30(\uC77C)','\uAE30\uACF5\uC0AC\uD310\uB2E8','\uC5D4\uC9C4\uB300\uBE44','\uD310\uB2E8\uBA54\uBAA8','\uC8FC\uBB38\uC811\uC218\uC77C','\uD76C\uB9DD\uBC30\uC1A1\uC77C','\uC608\uC0C1\uCD9C\uACE0\uC77C','\uCE74\uD14C\uACE0\uB9AC\uBA85','\uC0C1\uD488\uBA85/\uC635\uC158','\uCE58\uC544\uBC88\uD638(FDI)','\uC720\uB2DB\uC218','\uC7AC\uD310\uB2E8\uD69F\uC218','\uCC98\uB9AC\uC2DC\uAC04(\uCD08)','\uC5D4\uC9C4\uCC98\uB9AC(ms)','\uC9C0\uD45C\uC81C\uC678'];
   const rows = [...WF.orders].sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
   const csvLines = [headers.join(',')];
   rows.forEach(o => {
@@ -3253,6 +3587,7 @@ function exportLogCsv() {
       o.branchResult, STATES[o.state].label, o.remakeCount, o.days,
       o.finalDecision ? DECISION_LABEL[o.finalDecision.decision] : '', o.finalDecision ? AGREE_SHORT[o.finalDecision.agreement] : '', o.finalDecision ? (o.finalDecision.memo||'') : '',
       o.receivedAt||'', o.desiredDelivery||'', o.expectedShip||'', o.categoryName||'', o.productOption||'', o.teeth||'', o.units||'', (o.pastJudgments||[]).length,
+      typeof o.handlingSec === 'number' ? o.handlingSec : '', typeof o.engineMs === 'number' ? o.engineMs : '', o.kpiExclude ? 'Y' : '',
     ].map(v => `"${String(v).replace(/"/g,'""')}"`);
     csvLines.push(cells.join(','));
   });
