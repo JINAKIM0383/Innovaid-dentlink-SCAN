@@ -1237,7 +1237,8 @@ function parsePlyBinary(buf) {
   const lines = headSlice.slice(0, headerEnd).split(/\r?\n/).map(l => l.trim());
   if (lines[0] !== 'ply') throw new Error("PLY 파일이 아닙니다 ('ply' 표시 없음)");
   const fmtLine = lines.find(l => l.startsWith('format')) || '';
-  if (!/binary_(little|big)_endian/.test(fmtLine)) throw new Error('ASCII 형식 PLY는 지원하지 않습니다 (binary PLY만 가능)');
+  const ascii = /\bascii\b/.test(fmtLine);
+  if (!ascii && !/binary_(little|big)_endian/.test(fmtLine)) throw new Error('알 수 없는 PLY 형식입니다 (' + fmtLine + ')');
   const little = fmtLine.includes('little');
 
   const elements = [];
@@ -1253,6 +1254,10 @@ function parsePlyBinary(buf) {
       if (p[1] === 'list') cur.props.push({name: p[4], list: true, countType: p[2], itemType: p[3]});
       else cur.props.push({name: p[2], list: false, type: p[1]});
     } else if (line === 'end_header') break;
+  }
+  if (ascii) {
+    const r = plyReadAscii(bytes, headerEnd, elements);
+    return plyToTriangles(r.vertexPositions, r.faces);
   }
   const typ = t => { const r = PLY_TYPE[t]; if (!r) throw new Error('지원하지 않는 PLY 자료형: ' + t); return r; };
 
@@ -1307,10 +1312,13 @@ function parsePlyBinary(buf) {
     }
   }
 
+  return plyToTriangles(vertexPositions, faces);
+}
+
+// 점·면 목록 → 삼각형 목록 (binary/ASCII 공통)
+function plyToTriangles(vertexPositions, faces) {
   if (!vertexPositions.length) throw new Error('PLY에 점(vertex) 정보가 없습니다');
   if (!faces.length) throw new Error('PLY에 면(face) 정보가 없습니다 — 점구름(point cloud)만 있는 파일은 분석할 수 없습니다. 메쉬로 내보내 주세요.');
-
-  const nV = vertexPositions.length;
   const triangles = [];
   for (const idxs of faces) {
     if (idxs.length < 3) continue;
@@ -1323,6 +1331,49 @@ function parsePlyBinary(buf) {
   }
   if (!triangles.length) throw new Error('PLY의 면이 점 번호와 맞지 않아 분석할 삼각형이 없습니다');
   return triangles;
+}
+
+// ASCII PLY: 본문을 줄 단위로 읽는다. 요소(element)마다 count줄, 한 줄 = 속성들을 헤더 순서대로.
+function plyReadAscii(bytes, headerEnd, elements) {
+  const text = new TextDecoder('ascii').decode(bytes.subarray(headerEnd));
+  let pos = 0;
+  const nextLine = () => {
+    while (pos < text.length) {
+      let e = text.indexOf('\n', pos); if (e === -1) e = text.length;
+      const line = text.slice(pos, e).trim(); pos = e + 1;
+      if (line) return line;
+    }
+    return null;
+  };
+  const truncated = () => new Error('PLY 파일이 중간에 끊긴 것 같습니다 (헤더에 적힌 줄 수보다 파일이 짧음). 스캔 프로그램에서 다시 내보내 주세요.');
+  const vertexPositions = [], faces = [];
+  for (const el of elements) {
+    const names = el.props.map(p => p.name);
+    const isVertex = el.name === 'vertex';
+    const isFace = el.name === 'face';
+    const xi = names.indexOf('x'), yi = names.indexOf('y'), zi = names.indexOf('z');
+    const simple = !el.props.some(p => p.list);
+    const idxProp = el.props.findIndex(p => p.list && (p.name === 'vertex_indices' || p.name === 'vertex_index'));
+    const useIdx = isFace ? (idxProp >= 0 ? idxProp : el.props.findIndex(p => p.list)) : -1;
+    for (let i = 0; i < el.count; i++) {
+      const line = nextLine();
+      if (line === null) throw truncated();
+      if (!isVertex && !isFace) continue;                      // 그 밖의 요소(edge 등)는 줄만 넘김
+      const t = line.split(/\s+/);
+      if (isVertex && simple) {
+        if (xi >= 0 && yi >= 0 && zi >= 0) vertexPositions.push([parseFloat(t[xi]), parseFloat(t[yi]), parseFloat(t[zi])]);
+      } else if (isFace) {
+        let k = 0;
+        for (let pi = 0; pi < el.props.length; pi++) {
+          if (!el.props[pi].list) { k++; continue; }
+          const n = parseInt(t[k++], 10);
+          if (pi === useIdx) { const idxs = new Array(n); for (let q = 0; q < n; q++) idxs[q] = parseInt(t[k + q], 10); faces.push(idxs); }
+          k += n;
+        }
+      }
+    }
+  }
+  return {vertexPositions, faces};
 }
 
 function triArea(v1,v2,v3){
