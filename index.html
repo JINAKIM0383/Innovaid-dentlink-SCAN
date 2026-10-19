@@ -3074,6 +3074,17 @@ function runEngine() {
   // 구 판단식(화면에 안 보이는 참고용)은 날짜가 필요해, 희망 배송일이 비면 접수일+14일로 대신 넣음
   const dueDate = hasDue ? new Date(dueRaw) : new Date(submittedAt.getTime() + 14*86400000);
   const orderNumEarly = document.getElementById('orderNum').value.trim().replace(/^#/, '') || null;
+  // 중복 입력 확인: 같은 Order Num이면 새 건이 아니라 "재판단"으로 합쳐지고, 비슷한 주문이 이미 있으면 알려준다.
+  {
+    const prev = orderNumEarly ? WF.orders.find(o => o.id === orderNumEarly) : null;
+    if (prev) {
+      if (!confirm(`#${orderNumEarly} 주문은 이미 입력돼 있습니다.\n\n[확인] 재스캔 파일 확인 등으로 다시 판단합니다 (새 건이 아니라 같은 주문에 이어서 기록되며, 성과지표에는 1건으로만 셉니다${prev.finalDecision ? '. 기록해 둔 기공사 최종 판단은 초기화되고 이전 기록은 보관됩니다' : ''}).\n[취소] 실수로 다시 넣은 경우 — 아무것도 바꾸지 않습니다.`)) return;
+    } else {
+      const fp = orderFingerprint({scanFiles: scanFiles.filter(f => f.status === 'ok' || f.status === 'error').map(f => ({name: f.name})), teeth: toothNumbers.join(','), cat: ptype, receivedAt: submittedRaw || null});
+      const dup = fp ? WF.orders.find(o => orderFingerprint(o) === fp) : null;
+      if (dup && !confirm(`같은 스캔 파일명·치아번호·접수일의 주문 #${dup.id}이(가) 이미 있습니다.\n\n같은 주문을 다시 넣으신 거라면 [취소]하고, Order Num을 입력해 주세요 (중복으로 세지 않습니다).\n다른 주문이 맞다면 [확인]을 누르세요.`)) return;
+    }
+  }
 
   if (scanFiles.some(f => f.status === 'analyzing')) {
     document.getElementById('fileStatus').textContent = '분석 중인 파일이 있습니다. 분석이 끝난 뒤 다시 실행해주세요.';
@@ -3363,6 +3374,12 @@ function kpiSave(name) {
 }
 if (!CLOUD_ON) kpiLoadLocal();
 
+// 같은 주문을 번호 없이 두 번 넣었는지 알아보는 지문: 스캔 파일명 + 치아번호 + 보철종류 + 접수일이 모두 같을 때만 같은 주문으로 본다.
+function orderFingerprint(o) {
+  const names = (o.scanFiles || []).map(f => f.name).filter(Boolean).sort().join('|');
+  if (!names || !o.teeth) return null;
+  return [names, o.teeth, o.cat || '', o.receivedAt || ''].join('~');
+}
 function kpiMedian(a) {
   if (!a.length) return null;
   const b = [...a].sort((x, y) => x - y), m = b.length >> 1;
@@ -3382,6 +3399,13 @@ function computeKpis(orders, cfg, now) {
   const excluded = orders.filter(o => o.kpiExclude).length;
   let list = orders.filter(o => !o.kpiExclude);
   if (pilotStart) list = list.filter(o => new Date(o.createdAt) >= pilotStart);
+  // 중복 의심(같은 지문)은 가장 먼저 들어온 1건만 센다
+  const seenFp = new Map(), dupIds = [];
+  list = [...list].sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))).filter(o => {
+    const fp = orderFingerprint(o); if (!fp) return true;
+    if (seenFp.has(fp)) { dupIds.push(o.id); return false; }
+    seenFp.set(fp, o.id); return true;
+  });
   const n = list.length;
   const hist = o => o.history || [];
   const autoN = list.filter(o => o.branchResult === 'AUTO').length;
@@ -3407,7 +3431,7 @@ function computeKpis(orders, cfg, now) {
   const blMin = typeof bl.handlingMin === 'number' ? bl.handlingMin : null;
   const blRem = typeof bl.remakeRate === 'number' ? bl.remakeRate : null;
   const rows = [
-    {key: 'auto', name: '자동 처리 비율', def: '전체 판단 건 중 워크플로우 분기가 AUTO(사람 개입 없이 진행)인 비율',
+    {key: 'auto', name: '자동 처리 비율', def: 'AI 선판단이 "이상 없음(AUTO)"으로 분류한 건의 비율 — 참고값이며, 제작 진행은 항상 기공사가 확인해 결정',
      value: autoV, valueText: kpiFmtPct(autoV), count: `${autoN}/${n}건`, target: '≥ 75%', before: '0% (전량 수동)',
      change: autoV != null ? '+' + Math.round(autoV * 10) / 10 + '%p' : '—', status: st(enoughN, autoV != null && autoV >= KPI_TARGET.auto)},
     {key: 'remake', name: '재제작 발생률', def: '전체 건 중 재제작(리메이크)이 있었던 건의 비율',
@@ -3434,6 +3458,8 @@ function computeKpis(orders, cfg, now) {
   const cnt = k => decided.filter(o => o.finalDecision.agreement === k).length;
   const agree = cnt('agree'), miss = cnt('miss'), fa = cnt('falsealarm'), rv = cnt('review');
   const judged = agree + miss + fa;
+  const autos = list.filter(o => o.branchResult === 'AUTO');
+  const autoCheck = {total: autos.length, decided: autos.filter(o => o.finalDecision).length, miss: autos.filter(o => o.finalDecision && o.finalDecision.agreement === 'miss').length};
   const branchDist = {};
   list.forEach(o => { branchDist[o.branchResult] = (branchDist[o.branchResult] || 0) + 1; });
 
@@ -3447,16 +3473,17 @@ function computeKpis(orders, cfg, now) {
   const tempN = list.filter(o => /^T\d{6}-/.test(String(o.id))).length;
 
   const missing = [
+    {done: dupIds.length === 0, text: `중복 의심 주문 ${dupIds.length}건`, det: dupIds.length === 0 ? '' : `같은 스캔 파일·치아번호·접수일로 또 입력된 건은 지표에서 자동으로 뺐습니다 (#${dupIds.slice(0, 5).join(', #')}${dupIds.length > 5 ? ' 외' : ''}). 다른 주문이 맞다면 스캔 파일명이나 접수일을 확인해주세요.`},
     {done: !!pilotStart, text: '파일럿 시작일 설정', det: pilotStart ? cfg.pilot.start : '아래 "데이터 입력"에서 날짜를 정하면 그 날짜 이후 건만 집계합니다.'},
     {done: enoughN, text: `판단 건수 ${n}/${KPI_MIN_N}건`, det: enoughN ? '' : `비율 지표(자동처리·재제작·예외)를 확정하려면 ${KPI_MIN_N - n}건 더 필요`},
     {done: enoughT, text: `판단 시간이 기록된 건 ${timed.length}/${KPI_MIN_N}건`, det: enoughT ? '' : (n && !timedAll.length ? '이 기능 적용 이전에 입력한 건은 시간이 없습니다. 새로 입력하는 건부터 자동 기록됩니다.' : `${KPI_MIN_N - timed.length}건 더 필요`)},
-    {done: n > 0 && decided.length / n >= 0.8, text: `기공사 최종 판단 기록 ${decided.length}/${n}건`, det: '엔진을 믿고 자동 처리해도 되는지 보여주는 근거입니다. 판단 결과 화면에서 "기공사 최종 판단"을 눌러 남기세요(80% 이상 권장).'},
+    {done: n > 0 && decided.length / n >= 0.8, text: `기공사 최종 판단 기록 ${decided.length}/${n}건`, det: 'AI 선판단은 참고값이고 최종 결정은 기공사입니다. 판단 결과 화면에서 "기공사 최종 판단"을 눌러 남겨야 AI 선판단이 얼마나 맞는지 근거가 됩니다(80% 이상 권장).'},
     {done: blMin != null, text: '[Before] 수동 판단 평균 소요시간 입력', det: blMin != null ? '' : '지금은 계획서의 가정값(약 4시간)으로 비교합니다. 실제 값을 1~2주 재서 입력하면 근거가 됩니다.'},
     {done: blRem != null, text: '[Before] 도입 전 재제작률 입력', det: blRem != null ? '' : '과거 3개월 주문 대비 재제작 건수로 계산해 입력하세요.'},
     {done: enoughE, text: `전문가 평가 ${evals.length}/${KPI_MIN_EVALS}명`, det: enoughE ? '' : '11월 전문가 검증에서 받은 점수를 아래에 입력하세요.'},
     {done: tempN === 0, text: `임시번호(T…) 주문 ${tempN}건`, det: tempN === 0 ? '' : 'Order Num 없이 입력된 건입니다. 시험 입력이면 [판단 이력]에서 "지표 제외"를 체크하세요.'},
   ];
-  return {n, excluded, rows, support: {decided: decided.length, agree, miss, fa, rv, judged, agreeRate: judged ? agree / judged * 100 : null},
+  return {n, excluded, dupN: dupIds.length, autoCheck, rows, support: {decided: decided.length, agree, miss, fa, rv, judged, agreeRate: judged ? agree / judged * 100 : null},
           branchDist, pilot, missing, engAvgMs, tempN,
           achieved: rows.filter(r => r.status === 'ok').length, confirmed: rows.filter(r => r.status !== 'nodata').length};
 }
@@ -3471,7 +3498,7 @@ function renderKpi() {
   const p = K.pilot;
   area.innerHTML = `
     <div class="kpi-strip">
-      <div><div class="ks-k">집계 대상</div><div class="ks-v">${K.n}건</div><div class="ks-s">${K.excluded ? `지표 제외 ${K.excluded}건 빠짐` : '전체 판단 이력'}</div></div>
+      <div><div class="ks-k">집계 대상</div><div class="ks-v">${K.n}건</div><div class="ks-s">${K.excluded || K.dupN ? [K.excluded ? `지표 제외 ${K.excluded}건` : '', K.dupN ? `중복 의심 ${K.dupN}건` : ''].filter(Boolean).join(' · ') + ' 빠짐' : '전체 판단 이력'}</div></div>
       <div><div class="ks-k">달성 / 확정 가능</div><div class="ks-v">${K.achieved} / ${K.confirmed}</div><div class="ks-s">5개 지표 중 (나머지는 데이터 부족)</div></div>
       <div><div class="ks-k">엔진-기공사 일치율</div><div class="ks-v">${kpiFmtPct(K.support.agreeRate)}</div><div class="ks-s">${K.support.judged ? `${K.support.agree}/${K.support.judged}건 일치` : '기공사 판단 기록 없음'}</div></div>
       <div><div class="ks-k">파일럿 기간</div><div class="ks-v">${p ? p.pct + '%' : '미설정'}</div><div class="ks-s">${p ? `${p.start} ~ ${p.end} (${p.days}/${p.total}일)` : '시작일을 정하면 진행률이 표시됩니다'}</div>${p ? `<div class="kpi-bar"><i style="width:${p.pct}%"></i></div>` : ''}</div>
@@ -3494,10 +3521,11 @@ function renderKpi() {
     </table>
 
     <div class="kpi-h">신뢰성 보조 지표</div>
-    <div class="kpi-sub">자동 처리 비율이 높아도 엔진이 틀렸다면 의미가 없으므로, 기공사의 최종 판단과 비교한 결과를 함께 봅니다.</div>
+    <div class="kpi-sub">AI 선판단은 참고값이고 최종 결정은 항상 기공사가 합니다. 그래서 AI 선판단이 기공사의 최종 판단과 얼마나 맞았는지를 함께 봅니다.</div>
     <table class="kpi-table">
       <tbody>
         <tr><td class="kt-name" style="width:23%">엔진 vs 기공사</td><td>일치 <b>${K.support.agree}</b> · 미탐(엔진 통과, 기공사 차단) <b>${K.support.miss}</b> · 오탐(엔진 차단, 기공사 진행) <b>${K.support.fa}</b> · 검토건 <b>${K.support.rv}</b> (기공사 판단 기록 ${K.support.decided}건)</td></tr>
+        <tr><td class="kt-name">AUTO 건의 기공사 확인</td><td>${K.autoCheck.total ? `AUTO ${K.autoCheck.total}건 중 기공사 판단 기록 <b>${K.autoCheck.decided}</b>건 (미기록 ${K.autoCheck.total - K.autoCheck.decided}건) · 그중 기공사가 막은 건(미탐) <b>${K.autoCheck.miss}</b>건` : '—'}</td></tr>
         <tr><td class="kt-name">분기 결과 분포</td><td>${Object.keys(K.branchDist).length ? Object.entries(K.branchDist).map(([k, v]) => `${KPI_BRANCH_LABEL[k] || k} ${v}건`).join(' · ') : '—'}</td></tr>
         <tr><td class="kt-name">엔진 자체 처리 시간</td><td>${K.engAvgMs != null ? Math.round(K.engAvgMs) + 'ms (스캔 분석 + 규칙 판단 평균)' : '—'}</td></tr>
       </tbody>
@@ -3509,7 +3537,7 @@ function renderKpi() {
     </ul>
 
     <div class="kpi-note">
-      <b>읽는 법</b> · 자동 처리는 분기가 AUTO인 건만 셉니다(검토필요·긴급·플래그는 자동 처리가 아님). 판단 시간은 Rx 입력을 시작한 순간부터 "판단 실행"을 누를 때까지이므로 붙여넣기 기능으로 입력 시간이 줄수록 짧아집니다.
+      <b>읽는 법</b> · "자동 처리"는 AI 선판단이 AUTO(이상 없음)로 분류한 건만 셉니다(검토필요·긴급·플래그는 제외). 어떤 주문도 기공사 확인 없이 제작으로 넘어가지 않으며, 모든 건은 "New"에서 사람이 다음 단계로 넘깁니다. 판단 시간은 Rx 입력을 시작한 순간부터 "판단 실행"을 누를 때까지이므로 붙여넣기 기능으로 입력 시간이 줄수록 짧아집니다.
       재제작률 2% 미만은 표본이 작을 때 "0건"이어야 달성이라는 뜻이라, 건수가 쌓인 뒤 보는 것이 의미 있습니다. 만족도는 평가자 ${KPI_MIN_EVALS}명 이상일 때만 확정합니다.
     </div>
 
